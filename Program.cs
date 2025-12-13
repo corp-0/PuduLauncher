@@ -1,7 +1,11 @@
+using System.Drawing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
+using System.Linq;
+using System.Reflection;
+using System.IO;
 using Photino.NET;
 using Photino.NET.Server;
 using PuduLauncher.Services;
@@ -17,7 +21,17 @@ class Program
     private static bool ResolveDebugMode()
     {
         string? envValue = Environment.GetEnvironmentVariable("IS_DEBUG");
-        return !bool.TryParse(envValue, out bool parsed) || parsed;
+        return bool.TryParse(envValue, out bool parsed) && parsed;
+    }
+
+    private static bool HasEmbeddedManifest()
+    {
+        string? manifestName = Assembly
+            .GetExecutingAssembly()
+            .GetManifestResourceNames()
+            .FirstOrDefault(n => n.EndsWith("Microsoft.Extensions.FileProviders.Embedded.Manifest.xml", StringComparison.OrdinalIgnoreCase));
+
+        return manifestName is not null;
     }
 
     [STAThread]
@@ -31,6 +45,14 @@ class Program
 
         bool isDebugMode = ResolveDebugMode();
         Log.Information("Starting PuduLauncher (debug mode: {DebugMode})", isDebugMode);
+
+        // Ensure embedded frontend assets are present before starting anything.
+        bool embeddedAvailable = HasEmbeddedManifest();
+        if (!embeddedAvailable)
+        {
+            Log.Error("Embedded frontend assets are missing. Build the UI first: cd UserInterface/PuduLauncherUi && npm install && npm run build");
+            return;
+        }
 
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
         builder.Host.UseSerilog((ctx, services, cfg) =>
@@ -58,7 +80,7 @@ class Program
         builder.WebHost.ConfigureKestrel(o =>
         {
             o.ListenLocalhost(5099, lo => lo.Protocols = HttpProtocols.Http2);
-            o.ListenLocalhost(5100, lo => lo.Protocols = HttpProtocols.Http1AndHttp2);
+            o.ListenLocalhost(5100, lo => lo.Protocols = HttpProtocols.Http1);
         });
 
         WebApplication grpcApp = builder.Build();
@@ -73,8 +95,10 @@ class Program
         Log.Information("Starting gRPC server on ports 5099/5100");
         Task grpcTask = grpcApp.RunAsync();
 
+        string baseUrl;
+        Log.Information("Serving embedded frontend assets");
         PhotinoServer
-            .CreateStaticFileServer(args, out string baseUrl)
+            .CreateStaticFileServer(args, out baseUrl)
             .RunAsync();
 
         // The appUrl is set to the local development server when in debug mode.
@@ -84,13 +108,15 @@ class Program
 
         // Window title declared here for visibility
         const string windowTitle = "PuduLauncher";
-
-        // Creating a new PhotinoWindow instance with the fluent API
+        string iconPath = Path.Combine(AppContext.BaseDirectory, "pudu.ico");
+        
         PhotinoWindow? window = new PhotinoWindow()
             .SetTitle(windowTitle)
-            .SetUseOsDefaultSize(true)
+            .SetUseOsDefaultSize(false)
+            .SetSize(new Size(2048, 1024))
             .Center()
-            .SetResizable(true);
+            .SetResizable(true)
+            .SetIconFile(iconPath);
         
         window.Load(appUrl);
         Log.Information("Photino window loaded");

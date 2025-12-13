@@ -7,13 +7,9 @@
 		<AssemblyName>PuduLauncher</AssemblyName>
 		<RootNamespace>PuduLauncher</RootNamespace>
 		<UiProjectPath>$(MSBuildProjectDirectory)\UserInterface\PuduLauncherUi</UiProjectPath>
-		<BuildUi Condition="'$(BuildUi)'==''">true</BuildUi>
-		<!-- Use npm ci on CI servers for reproducibility; npm install locally for speed -->
-		<NpmInstallCommand Condition="'$(CI)'=='true'">npm ci</NpmInstallCommand>
-		<NpmInstallCommand Condition="'$(CI)'!='true'">npm install</NpmInstallCommand>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-    	<!-- Generate embedded file manifest when using the Photino.NET StaticFileServer -->
+		<!-- Generate embedded file manifest when using the Photino.NET StaticFileServer -->
 		<GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
 	</PropertyGroup>
 
@@ -31,17 +27,25 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<EmbeddedResource Include="Resources\**" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<Protobuf Include="Protos\launcher.proto" GrpcServices="Server" />
 	</ItemGroup>
 
-	<Target Name="BuildFrontend" BeforeTargets="Build" Condition="'$(BuildUi)'=='true'">
-		<Message Text="Building frontend in $(UiProjectPath)" Importance="high" />
-		<Exec Command="$(NpmInstallCommand)" WorkingDirectory="$(UiProjectPath)" />
-		<Exec Command="npm run build" WorkingDirectory="$(UiProjectPath)" />
+	<ItemGroup>
+		<Content Include="pudu.ico">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		</Content>
+		<Content Include="Resources\wwwroot\**\*">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		</Content>
+		<EmbeddedResource Include="Resources\wwwroot\**\*" />
+	</ItemGroup>
+
+	<Target Name="CheckFrontendAssets" BeforeTargets="Build">
+		<Error
+			Text="Frontend assets missing. Build the UI: cd UserInterface/PuduLauncherUi &amp;&amp; npm install &amp;&amp; npm run build"
+			Condition="!Exists('Resources\wwwroot\index.html')" />
 	</Target>
 
 </Project>
