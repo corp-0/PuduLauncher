@@ -13,8 +13,6 @@ using Serilog;
 using Serilog.Events;
 
 namespace PuduLauncher;
-//NOTE: To hide the console window, go to the project properties and change the Output Type to Windows Application.
-// Or edit the .csproj file and change the <OutputType> tag from "WinExe" to "Exe".
 
 class Program
 {

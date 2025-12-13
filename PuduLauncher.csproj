@@ -1,15 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<OutputType>Exe</OutputType>
+		<OutputType>WinExe</OutputType>
 		<TargetFramework>net8.0</TargetFramework>
 		<Platforms>AnyCPU</Platforms>
 		<AssemblyName>PuduLauncher</AssemblyName>
 		<RootNamespace>PuduLauncher</RootNamespace>
 		<UiProjectPath>$(MSBuildProjectDirectory)\UserInterface\PuduLauncherUi</UiProjectPath>
+		<ApplicationIcon>pudu.ico</ApplicationIcon>
+		<MacOSAppIcon Condition="Exists('pudu.icns')">pudu.icns</MacOSAppIcon>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<!-- Generate embedded file manifest when using the Photino.NET StaticFileServer -->
+    	<!-- Generate embedded file manifest when using the Photino.NET StaticFileServer -->
 		<GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
 	</PropertyGroup>
 
@@ -32,6 +34,14 @@
 
 	<ItemGroup>
 		<Content Include="pudu.ico">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		</Content>
+		<Content Include="pudu.icns" Condition="Exists('pudu.icns')">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		</Content>
+		<Content Include="pudu.png" Condition="Exists('pudu.png')">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
 		</Content>
