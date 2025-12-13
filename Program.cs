@@ -65,6 +65,7 @@ class Program
 
         builder.Services.AddGrpc();
         builder.Services.AddSingleton<IEnvironmentService, EnvironmentService>();
+        builder.Services.AddSingleton<IPreferencesService, PreferencesService>();
         builder.Services.AddCors(options =>
         {
             options.AddPolicy("GrpcCors", policy =>
