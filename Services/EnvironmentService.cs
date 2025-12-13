@@ -6,6 +6,9 @@ using PuduLauncher.Services.Interface;
 
 namespace PuduLauncher.Services;
 
+/// <summary>
+/// Handles detecting the runtime environment and environment-specific paths or configuration.
+/// </summary>
 public class EnvironmentService : IEnvironmentService
 {
     private readonly CurrentEnvironment _currentEnvironment;

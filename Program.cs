@@ -1,5 +1,4 @@
 using System.Drawing;
-using System.IO;
 using Microsoft.AspNetCore.Builder;
 using Photino.NET;
 using PuduLauncher.Hosting;

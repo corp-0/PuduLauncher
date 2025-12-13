@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+option csharp_namespace = "PuduLauncher.Grpc";
+
+package blog;
+
+// Blog service to fetch posts for the launcher UI.
+service Blog {
+  rpc GetBlogPosts(BlogPostsRequest) returns (BlogPostsReply);
+}
+
+message BlogPostsRequest {
+  int32 count = 1;
+}
+
+message BlogPostsReply {
+  repeated BlogPost posts = 1;
+}
+
+message BlogPost {
+  string title = 1;
+  string slug = 2;
+  string author = 3;
+  string date_created = 4;
+  string type = 5;
+  string image_url = 6;
+  string summary = 7;
+  string state = 8;
+  repeated BlogSection sections = 9;
+}
+
+message BlogSection {
+  string heading = 1;
+  string body = 2;
+}

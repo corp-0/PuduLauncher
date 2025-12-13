@@ -44,6 +44,7 @@ internal static class AppBootstrapper
         builder.Services.AddGrpc();
         builder.Services.AddSingleton<IEnvironmentService, EnvironmentService>();
         builder.Services.AddSingleton<IPreferencesService, PreferencesService>();
+        builder.Services.AddHttpClient<IBlogService, BlogService>();
         builder.Services.AddCors(options =>
         {
             options.AddPolicy("GrpcCors", policy =>
@@ -71,6 +72,9 @@ internal static class AppBootstrapper
         grpcApp.UseCors("GrpcCors");
         grpcApp.UseGrpcWeb(); // needed for browser-based clients
         grpcApp.MapGrpcService<LauncherService>()
+            .EnableGrpcWeb()
+            .RequireCors("GrpcCors");
+        grpcApp.MapGrpcService<BlogService>()
             .EnableGrpcWeb()
             .RequireCors("GrpcCors");
     }

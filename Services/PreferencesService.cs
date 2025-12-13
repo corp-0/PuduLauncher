@@ -7,6 +7,9 @@ using PuduLauncher.Services.Interface;
 
 namespace PuduLauncher.Services;
 
+/// <summary>
+/// Handles loading, saving, and managing user preferences.
+/// </summary>
 public class PreferencesService : IPreferencesService, IDisposable
 {
     private readonly IEnvironmentService _environmentService;
