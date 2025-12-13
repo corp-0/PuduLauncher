@@ -9,6 +9,7 @@ using System.IO;
 using Photino.NET;
 using Photino.NET.Server;
 using PuduLauncher.Services;
+using PuduLauncher.Services.Interface;
 using Serilog;
 using Serilog.Events;
 
@@ -63,6 +64,7 @@ class Program
         });
 
         builder.Services.AddGrpc();
+        builder.Services.AddSingleton<IEnvironmentService, EnvironmentService>();
         builder.Services.AddCors(options =>
         {
             options.AddPolicy("GrpcCors", policy =>
