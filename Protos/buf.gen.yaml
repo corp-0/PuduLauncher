@@ -1,0 +1,9 @@
+version: v1
+
+plugins:
+  - plugin: buf.build/bufbuild/es:v1.10.0
+    out: ../UserInterface/PuduLauncherUi/src/grpc
+    opt: target=ts
+  - plugin: buf.build/connectrpc/es:v1.6.1
+    out: ../UserInterface/PuduLauncherUi/src/grpc
+    opt: target=ts

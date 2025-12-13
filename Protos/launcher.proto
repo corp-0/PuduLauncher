@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+option csharp_namespace = "PuduLauncher.Grpc";
+
+package launcher;
+
+service Launcher {
+  rpc SingleResponse(StatusRequest) returns (StatusReply);
+  rpc LaunchJob(LaunchRequest) returns (LaunchReply);
+  rpc StreamProgress(ProgressRequest) returns (stream ProgressUpdate);
+}
+
+message StatusRequest {}
+
+message StatusReply {
+  string state = 1;
+  string version = 2;
+}
+
+message LaunchRequest {
+  string job_id = 1;
+}
+
+message LaunchReply {
+  bool started = 1;
+  string message = 2;
+}
+
+message ProgressRequest {
+  string job_id = 1;
+}
+
+message ProgressUpdate {
+  string job_id = 1;
+  int32 percent = 2;
+  string status = 3;
+}

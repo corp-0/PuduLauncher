@@ -1,0 +1,47 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net8.0</TargetFramework>
+		<Platforms>AnyCPU</Platforms>
+		<AssemblyName>PuduLauncher</AssemblyName>
+		<RootNamespace>PuduLauncher</RootNamespace>
+		<UiProjectPath>$(MSBuildProjectDirectory)\UserInterface\PuduLauncherUi</UiProjectPath>
+		<BuildUi Condition="'$(BuildUi)'==''">true</BuildUi>
+		<!-- Use npm ci on CI servers for reproducibility; npm install locally for speed -->
+		<NpmInstallCommand Condition="'$(CI)'=='true'">npm ci</NpmInstallCommand>
+		<NpmInstallCommand Condition="'$(CI)'!='true'">npm install</NpmInstallCommand>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+    	<!-- Generate embedded file manifest when using the Photino.NET StaticFileServer -->
+		<GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Google.Protobuf" Version="3.27.2" />
+		<PackageReference Include="Grpc.AspNetCore" Version="2.65.0" />
+		<PackageReference Include="Grpc.AspNetCore.Web" Version="2.65.0" />
+		<PackageReference Include="Grpc.Tools" Version="2.65.0" PrivateAssets="all" />
+		<PackageReference Include="Serilog.AspNetCore" Version="8.0.2" />
+		<PackageReference Include="Serilog.Sinks.Console" Version="5.0.1" />
+		<PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="8.0.10" />
+		<PackageReference Include="Photino.NET" Version="3.2.3" />
+		<PackageReference Include="Photino.NET.Server" Version="3.0.11" />
+		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="Resources\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Protobuf Include="Protos\launcher.proto" GrpcServices="Server" />
+	</ItemGroup>
+
+	<Target Name="BuildFrontend" BeforeTargets="Build" Condition="'$(BuildUi)'=='true'">
+		<Message Text="Building frontend in $(UiProjectPath)" Importance="high" />
+		<Exec Command="$(NpmInstallCommand)" WorkingDirectory="$(UiProjectPath)" />
+		<Exec Command="npm run build" WorkingDirectory="$(UiProjectPath)" />
+	</Target>
+
+</Project>
