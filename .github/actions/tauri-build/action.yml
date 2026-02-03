@@ -1,0 +1,46 @@
+name: tauri-build
+description: Common Tauri build steps
+
+runs:
+  using: composite
+  steps:
+    - name: setup node
+      uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+        cache: npm
+        cache-dependency-path: package-lock.json
+
+    - name: setup dotnet
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+
+    - name: install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: cache cargo
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+        key: ${{ runner.os }}-${{ runner.arch }}-cargo-v2-${{ hashFiles('src-tauri/Cargo.lock', 'src-tauri/Cargo.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ runner.arch }}-cargo-v2-
+
+    - name: cache nuget
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('src-dotnet/**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+
+    - name: install frontend dependencies
+      run: npm ci
+      shell: bash
+
+    - name: build tauri
+      run: npm run tauri build
+      shell: bash
