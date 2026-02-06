@@ -1,8 +1,7 @@
 using System.Net.WebSockets;
 using PuduLauncher.Abstractions.Interfaces;
-using PuduLauncher.Controllers;
+using PuduLauncher.Generated;
 using PuduLauncher.Infrastructure;
-using PuduLauncher.Models.Commands;
 using PuduLauncher.Services;
 using AppJsonSerializerContext = PuduLauncher.AppJsonSerializerContext;
 
@@ -29,7 +28,7 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddSingleton<IEventPublisher, WebSocketEventPublisher>();
 
-builder.Services.AddScoped<GreeterController>();
+builder.Services.AddPuduControllers();
 
 builder.Services.AddHostedService<ClockService>();
 
@@ -73,12 +72,7 @@ app.MapGet("/events", async (HttpContext context, IEventPublisher eventPublisher
     }
 });
 
-// Keep explicit routing until source-generated route registration is introduced.
-app.MapPost("/api/greeter/greet", async (GreetCommand command, GreeterController controller) =>
-{
-    var result = await controller.Greet(command);
-    return Results.Json(result, AppJsonSerializerContext.Default.CommandResultString);
-});
+app.MapPuduEndpoints();
 
 // Use ephemeral port allocation to prevent startup failures from fixed-port collisions.
 app.Urls.Add("http://127.0.0.1:0");
