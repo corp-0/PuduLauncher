@@ -18,10 +18,26 @@ impl SidecarManager {
     /// Starts the .NET sidecar process and returns the port it bound to.
     /// The sidecar prints `SIDECAR_PORT:<port>` to stdout once ready.
     pub async fn start(&self, app: &AppHandle) -> Result<u16, String> {
-        let sidecar_command = app
+        #[allow(unused_mut)]
+        // The command needs to be mutable on Linux to set environment variables.
+        let mut sidecar_command = app
             .shell()
             .sidecar("pudu-launcher-sidecar")
             .map_err(|e| format!("Failed to create sidecar command: {}", e))?;
+
+        // On Linux, the new AppImage format sandboxes libraries so the .NET
+        // Native AOT sidecar can't find libssl on the host. Point the linker
+        // at the standard system library paths.
+        #[cfg(target_os = "linux")]
+        {
+            let existing = std::env::var("LD_LIBRARY_PATH").unwrap_or_default();
+            let mut v = String::from("$APPDIR/shared/lib/openssl:$APPDIR/shared/lib");
+            if !existing.is_empty() {
+                v.push(':');
+                v.push_str(&existing);
+            }
+            sidecar_command = sidecar_command.env("LD_LIBRARY_PATH", v);
+        }
 
         let (rx, child) = sidecar_command
             .spawn()

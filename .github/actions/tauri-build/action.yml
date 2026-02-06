@@ -1,35 +1,35 @@
 name: tauri-build
-description: Common Tauri build steps
-
+description: Common Tauri build steps (with truly-portable-appimage support)
 runs:
   using: composite
   steps:
-    - name: setup node
+    - name: Setup Node
       uses: actions/setup-node@v4
       with:
         node-version: lts/*
         cache: npm
         cache-dependency-path: package-lock.json
 
-    - name: setup dotnet
+    - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 9.0.x
 
-    - name: install Rust stable
+    - name: Install Rust stable
       uses: dtolnay/rust-toolchain@stable
 
-    - name: cache cargo
+    - name: Cache Cargo
       uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/registry
           ~/.cargo/git
-        key: ${{ runner.os }}-${{ runner.arch }}-cargo-v2-${{ hashFiles('src-tauri/Cargo.lock', 'src-tauri/Cargo.toml') }}
+          ~/.cargo/bin/cargo-tauri
+        key: ${{ runner.os }}-${{ runner.arch }}-cargo-v3-${{ hashFiles('src-tauri/Cargo.lock', 'src-tauri/Cargo.toml') }}
         restore-keys: |
-          ${{ runner.os }}-${{ runner.arch }}-cargo-v2-
+          ${{ runner.os }}-${{ runner.arch }}-cargo-v3-
 
-    - name: cache nuget
+    - name: Cache NuGet
       uses: actions/cache@v4
       with:
         path: ~/.nuget/packages
@@ -37,10 +37,21 @@ runs:
         restore-keys: |
           ${{ runner.os }}-nuget-
 
-    - name: install frontend dependencies
+    - name: Install Tauri CLI (portable AppImage branch)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        # Only install if not already cached
+        if ! cargo tauri --version 2>/dev/null | grep -q "tauri-cli"; then
+          cargo install tauri-cli --git https://github.com/tauri-apps/tauri --branch feat/truly-portable-appimage
+        fi
+
+    - name: Install frontend dependencies
       run: npm ci
       shell: bash
 
-    - name: build tauri
-      run: npm run tauri build
+    - name: Build Tauri
       shell: bash
+      env:
+        TAURI_BUNDLER_NEW_APPIMAGE_FORMAT: "true"
+      run: cargo tauri build
