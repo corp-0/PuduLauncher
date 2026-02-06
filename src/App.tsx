@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import reactLogo from "./assets/react.svg";
 import "./App.css";
-import { GreeterApi } from "./pudu/api/greeter-api";
-import { EventListener, TimerEvent } from "./pudu/events/event-listener";
+import { GreeterApi, type TimerEvent } from "./pudu/generated";
+import { EventListener } from "./pudu/events/event-listener";
 
 function App() {
   const [greetMsg, setGreetMsg] = useState("");

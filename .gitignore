@@ -21,7 +21,7 @@ dist-ssr
 *.ntvs*
 *.njsproj
 *.sln
-!src-dotnet/src-dotnet.sln
+!PuduLauncher.sln
 *.sw?
 .idea/
 .vs/
@@ -66,3 +66,7 @@ msbuild.wrn
 # Tauri sidecar binaries (built from src-dotnet)
 src-tauri/binaries/*
 !src-tauri/binaries/.gitkeep
+
+# Auto-generated TypeScript client (rebuilt by tools/generate-ts-client.js)
+src/pudu/generated/
+!src/pudu/generated/.gitkeep

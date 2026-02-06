@@ -1,4 +1,4 @@
-import type { EventBase, TimerEvent } from '../api/types';
+import type { EventBase } from '../generated/types';
 import { getSidecarWsUrl } from '../sidecar';
 
 /**
@@ -103,7 +103,3 @@ export class EventListener {
   }
 }
 
-export type {
-  EventBase,
-  TimerEvent,
-};
