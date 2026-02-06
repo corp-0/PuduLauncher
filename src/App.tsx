@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import reactLogo from "./assets/react.svg";
 import "./App.css";
-import { GreeterApi, type TimerEvent } from "./pudu/generated";
+import { GreeterApi } from "./pudu/generated";
 import { EventListener } from "./pudu/events/event-listener";
 
 function App() {
@@ -14,7 +14,7 @@ function App() {
 
     eventListener.connect();
 
-    eventListener.on<TimerEvent>("timer:tick", (event) => {
+    eventListener.on("timer:tick", (event) => {
       setTimer(event.elapsedTime);
     });
 

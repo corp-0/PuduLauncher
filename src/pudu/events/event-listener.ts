@@ -1,12 +1,14 @@
-import type { EventBase } from '../generated/types';
+import type { EventBase, PuduEvent, PuduEventMap, PuduEventType } from '../generated/types';
 import { getSidecarWsUrl } from '../sidecar';
 
 /**
  * WebSocket-based event listener for receiving real-time events from the sidecar.
  */
+type EventHandler = (event: PuduEvent) => void;
+
 export class EventListener {
   private ws: WebSocket | null = null;
-  private handlers = new Map<string, ((event: any) => void)[]>();
+  private handlers = new Map<PuduEventType, EventHandler[]>();
   private reconnectInterval = 3000;
   private reconnectTimer: number | null = null;
 
@@ -30,10 +32,11 @@ export class EventListener {
       this.ws.onmessage = (msg) => {
         try {
           const event = JSON.parse(msg.data) as EventBase;
-          const handlers = this.handlers.get(event.eventType);
+          const eventType = event.eventType as PuduEventType;
+          const handlers = this.handlers.get(eventType);
 
           if (handlers) {
-            handlers.forEach((handler) => handler(event));
+            handlers.forEach((handler) => handler(event as PuduEvent));
           } else {
             console.log('Unhandled event type:', event.eventType);
           }
@@ -56,15 +59,21 @@ export class EventListener {
     }
   }
 
-  on<T extends EventBase>(eventType: string, handler: (event: T) => void): void {
+  on<TEventType extends PuduEventType>(
+    eventType: TEventType,
+    handler: (event: PuduEventMap[TEventType]) => void
+  ): void {
     if (!this.handlers.has(eventType)) {
       this.handlers.set(eventType, []);
     }
 
-    this.handlers.get(eventType)!.push(handler as (event: any) => void);
+    this.handlers.get(eventType)!.push(handler as EventHandler);
   }
 
-  off(eventType: string, handler?: (event: any) => void): void {
+  off<TEventType extends PuduEventType>(
+    eventType: TEventType,
+    handler?: (event: PuduEventMap[TEventType]) => void
+  ): void {
     if (!handler) {
       this.handlers.delete(eventType);
       return;
@@ -72,7 +81,7 @@ export class EventListener {
 
     const handlers = this.handlers.get(eventType);
     if (handlers) {
-      const index = handlers.indexOf(handler);
+      const index = handlers.indexOf(handler as EventHandler);
       if (index !== -1) {
         handlers.splice(index, 1);
       }
@@ -102,4 +111,3 @@ export class EventListener {
     }, this.reconnectInterval);
   }
 }
-
