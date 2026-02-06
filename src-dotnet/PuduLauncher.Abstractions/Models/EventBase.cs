@@ -1,3 +1,6 @@
+using System.Collections.Concurrent;
+using PuduLauncher.Abstractions.Attributes;
+
 namespace PuduLauncher.Abstractions.Models;
 
 /// <summary>
@@ -5,6 +8,8 @@ namespace PuduLauncher.Abstractions.Models;
 /// </summary>
 public abstract class EventBase
 {
+    private static readonly ConcurrentDictionary<Type, string> EventTypeCache = new();
+
     /// <summary>
     /// Gets the type of the event, used by the frontend to route events to the correct handler.
     /// </summary>
@@ -18,13 +23,25 @@ public abstract class EventBase
     /// <summary>
     /// Initializes a new instance of the <see cref="EventBase"/> class.
     /// </summary>
-    /// <param name="eventType">The event type identifier (e.g., "download:progress").</param>
-    protected EventBase(string eventType)
+    protected EventBase()
     {
-        if (string.IsNullOrWhiteSpace(eventType))
-            throw new ArgumentException("Event type cannot be null or whitespace.", nameof(eventType));
-
-        EventType = eventType;
+        EventType = EventTypeCache.GetOrAdd(GetType(), ResolveEventType);
         Timestamp = DateTimeOffset.UtcNow;
+    }
+
+    private static string ResolveEventType(Type eventModelType)
+    {
+        var eventAttribute = (PuduEventAttribute?)Attribute.GetCustomAttribute(
+            eventModelType,
+            typeof(PuduEventAttribute),
+            inherit: false);
+
+        if (eventAttribute is null || string.IsNullOrWhiteSpace(eventAttribute.Name))
+        {
+            throw new InvalidOperationException(
+                $"Event model '{eventModelType.FullName}' must be decorated with [PuduEvent(\"...\")].");
+        }
+
+        return eventAttribute.Name;
     }
 }
