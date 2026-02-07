@@ -1,0 +1,34 @@
+app-id: com.corp0.pudu-launcher
+runtime: org.gnome.Platform
+runtime-version: "48"
+sdk: org.gnome.Sdk
+command: pudu-launcher
+
+finish-args:
+  - --share=network
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+
+modules:
+  - name: pudu-launcher
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 pudu-launcher /app/bin/pudu-launcher
+      - install -Dm755 pudu-launcher-sidecar /app/bin/pudu-launcher-sidecar
+      - install -Dm644 com.corp0.pudu-launcher.desktop /app/share/applications/com.corp0.pudu-launcher.desktop
+      - install -Dm644 com.corp0.pudu-launcher.metainfo.xml /app/share/metainfo/com.corp0.pudu-launcher.metainfo.xml
+      - install -Dm644 com.corp0.pudu-launcher.png /app/share/icons/hicolor/128x128/apps/com.corp0.pudu-launcher.png
+    sources:
+      - type: file
+        path: ../src-tauri/target/release/pudu-launcher
+      - type: file
+        path: ../src-tauri/target/release/pudu-launcher-sidecar
+      - type: file
+        path: com.corp0.pudu-launcher.desktop
+      - type: file
+        path: com.corp0.pudu-launcher.metainfo.xml
+      - type: file
+        path: ../src-tauri/icons/128x128.png
+        dest-filename: com.corp0.pudu-launcher.png

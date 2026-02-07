@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Pudu Launcher
+Comment=Pudu Launcher desktop application
+Exec=pudu-launcher
+Icon=com.corp0.pudu-launcher
+Terminal=false
+Categories=Utility;
+StartupNotify=true

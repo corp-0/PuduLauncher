@@ -8,6 +8,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
+    "flatpak:build": "bash tools/build-flatpak.sh",
     "generate-ts": "node tools/generate-ts-client.js",
     "build-sidecar": "node tools/build-sidecar.js",
     "build-sidecar:release": "node tools/build-sidecar.js --release"

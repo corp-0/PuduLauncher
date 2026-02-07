@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.corp0.pudu-launcher</id>
+  <name>Pudu Launcher</name>
+  <summary>Pudu Launcher desktop application</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>NOASSERTION</project_license>
+  <launchable type="desktop-id">com.corp0.pudu-launcher.desktop</launchable>
+  <provides>
+    <binary>pudu-launcher</binary>
+  </provides>
+  <description>
+    <p>
+      Pudu Launcher is a Tauri desktop application backed by a bundled .NET sidecar.
+    </p>
+  </description>
+  <releases>
+    <release version="0.1.0" date="2026-02-07" />
+  </releases>
+</component>
