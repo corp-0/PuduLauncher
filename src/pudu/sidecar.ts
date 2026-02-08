@@ -2,12 +2,23 @@ import { invoke } from '@tauri-apps/api/core';
 
 let cachedPort: number | null = null;
 
+const isTauri = '__TAURI_INTERNALS__' in window;
+
 /**
  * Returns the sidecar port, fetching it from the Rust backend on first call.
- * Retries a few times since the sidecar starts asynchronously.
+ * In standalone dev mode (no Tauri), reads from VITE_SIDECAR_PORT env var.
  */
 export async function getSidecarPort(): Promise<number> {
   if (cachedPort) return cachedPort;
+
+  if (!isTauri) {
+    const envPort = import.meta.env.VITE_SIDECAR_PORT;
+    if (!envPort) {
+      throw new Error('Running outside Tauri: set VITE_SIDECAR_PORT in .env.local');
+    }
+    cachedPort = Number(envPort);
+    return cachedPort;
+  }
 
   const maxRetries = 20;
   const retryDelay = 500;
