@@ -203,43 +203,47 @@ public class PuduEndpointGenerator : IIncrementalGenerator
             foreach (var cmd in controller.Commands)
             {
                 var route = $"/api/{controller.ControllerName}/{cmd.CommandName}";
+                var commandResultClrType = cmd.IsVoid
+                    ? "global::PuduLauncher.Abstractions.Models.CommandResult<object>"
+                    : $"global::PuduLauncher.Abstractions.Models.CommandResult<{cmd.ResultTypeClr}>";
                 sb.AppendLine($"        app.MapPost(\"{route}\", async (HttpContext ctx) =>");
                 sb.AppendLine("        {");
+                sb.AppendLine("            try");
+                sb.AppendLine("            {");
 
                 // Deserialize parameters
                 if (cmd.Parameters.Length == 1 && cmd.Parameters[0].JsonAccessor is null)
                 {
                     // Single complex parameter: deserialize the whole body as that type
                     var p = cmd.Parameters[0];
-                    sb.AppendLine($"            var commandTypeInfo = JsonCtx.Default.GetTypeInfo(typeof({p.FullyQualifiedType}))");
-                    sb.AppendLine($"                ?? throw new InvalidOperationException(\"Type {p.FullyQualifiedType} is not registered in JsonCtx. Run 'npm run generate-ts'.\");");
-                    sb.AppendLine($"            var p_{p.Name} = ({p.FullyQualifiedType}?)await JsonSerializer.DeserializeAsync(ctx.Request.Body, commandTypeInfo, ctx.RequestAborted);");
-                    sb.AppendLine($"            if (p_{p.Name} is null)");
-                    sb.AppendLine("            {");
-                    sb.AppendLine("                ctx.Response.StatusCode = 400;");
-                    sb.AppendLine("                return;");
-                    sb.AppendLine("            }");
+                    sb.AppendLine($"                var commandTypeInfo = JsonCtx.Default.GetTypeInfo(typeof({p.FullyQualifiedType}))");
+                    sb.AppendLine($"                    ?? throw new InvalidOperationException(\"Type {p.FullyQualifiedType} is not registered in JsonCtx. Run 'npm run generate-ts'.\");");
+                    sb.AppendLine($"                var p_{p.Name} = ({p.FullyQualifiedType}?)await JsonSerializer.DeserializeAsync(ctx.Request.Body, commandTypeInfo, ctx.RequestAborted);");
+                    sb.AppendLine($"                if (p_{p.Name} is null)");
+                    sb.AppendLine("                {");
+                    sb.AppendLine("                    throw new InvalidOperationException(\"Request body cannot be null.\");");
+                    sb.AppendLine("                }");
                 }
                 else if (cmd.Parameters.Length >= 1)
                 {
-                    sb.AppendLine("            using var doc = await JsonDocument.ParseAsync(ctx.Request.Body, cancellationToken: ctx.RequestAborted);");
-                    sb.AppendLine("            var root = doc.RootElement;");
+                    sb.AppendLine("                using var doc = await JsonDocument.ParseAsync(ctx.Request.Body, cancellationToken: ctx.RequestAborted);");
+                    sb.AppendLine("                var root = doc.RootElement;");
                     foreach (var p in cmd.Parameters)
                     {
                         var propName = ToCamelCase(p.Name);
                         if (p.JsonAccessor is not null)
                         {
-                            sb.AppendLine($"            var p_{p.Name} = root.GetProperty(\"{propName}\").{p.JsonAccessor};");
+                            sb.AppendLine($"                var p_{p.Name} = root.GetProperty(\"{propName}\").{p.JsonAccessor};");
                         }
                         else
                         {
-                            sb.AppendLine($"            var p_{p.Name} = ({p.FullyQualifiedType}?)root.GetProperty(\"{propName}\").Deserialize(typeof({p.FullyQualifiedType}), JsonCtx.Default);");
+                            sb.AppendLine($"                var p_{p.Name} = ({p.FullyQualifiedType}?)root.GetProperty(\"{propName}\").Deserialize(typeof({p.FullyQualifiedType}), JsonCtx.Default);");
                         }
                     }
                 }
 
                 // Resolve controller from DI
-                sb.AppendLine($"            var controller = ctx.RequestServices.GetRequiredService<{controller.FullyQualifiedName}>();");
+                sb.AppendLine($"                var controller = ctx.RequestServices.GetRequiredService<{controller.FullyQualifiedName}>();");
 
                 // Call method
                 var awaitPrefix = cmd.IsAsync ? "await " : "";
@@ -249,18 +253,28 @@ public class PuduEndpointGenerator : IIncrementalGenerator
 
                 if (cmd.IsVoid)
                 {
-                    sb.AppendLine($"            {awaitPrefix}controller.{cmd.MethodName}({args});");
-                    sb.AppendLine("            ctx.Response.StatusCode = 204;");
+                    sb.AppendLine($"                {awaitPrefix}controller.{cmd.MethodName}({args});");
+                    sb.AppendLine($"                var commandResult = new {commandResultClrType} {{ Success = true }};");
                 }
                 else
                 {
-                    sb.AppendLine($"            var result = {awaitPrefix}controller.{cmd.MethodName}({args});");
-                    sb.AppendLine($"            var resultTypeInfo = JsonCtx.Default.GetTypeInfo(typeof({cmd.ResultTypeClr}))");
-                    sb.AppendLine($"                ?? throw new InvalidOperationException(\"Type {cmd.ResultTypeClr} is not registered in JsonCtx. Run 'npm run generate-ts'.\");");
-                    sb.AppendLine("            ctx.Response.ContentType = \"application/json\";");
-                    sb.AppendLine("            await JsonSerializer.SerializeAsync(ctx.Response.Body, result, resultTypeInfo, ctx.RequestAborted);");
+                    sb.AppendLine($"                var result = {awaitPrefix}controller.{cmd.MethodName}({args});");
+                    sb.AppendLine($"                var commandResult = {commandResultClrType}.Ok(result);");
                 }
 
+                sb.AppendLine($"                var commandResultTypeInfo = JsonCtx.Default.GetTypeInfo(typeof({commandResultClrType}))");
+                sb.AppendLine($"                    ?? throw new InvalidOperationException(\"Type {commandResultClrType} is not registered in JsonCtx. Run 'npm run generate-ts'.\");");
+                sb.AppendLine("                ctx.Response.ContentType = \"application/json\";");
+                sb.AppendLine("                await JsonSerializer.SerializeAsync(ctx.Response.Body, commandResult, commandResultTypeInfo, ctx.RequestAborted);");
+                sb.AppendLine("            }");
+                sb.AppendLine("            catch (Exception ex)");
+                sb.AppendLine("            {");
+                sb.AppendLine($"                var commandError = {commandResultClrType}.Fail(ex.Message);");
+                sb.AppendLine($"                var commandErrorTypeInfo = JsonCtx.Default.GetTypeInfo(typeof({commandResultClrType}))");
+                sb.AppendLine($"                    ?? throw new InvalidOperationException(\"Type {commandResultClrType} is not registered in JsonCtx. Run 'npm run generate-ts'.\");");
+                sb.AppendLine("                ctx.Response.ContentType = \"application/json\";");
+                sb.AppendLine("                await JsonSerializer.SerializeAsync(ctx.Response.Body, commandError, commandErrorTypeInfo, ctx.RequestAborted);");
+                sb.AppendLine("            }");
                 sb.AppendLine("        });");
                 sb.AppendLine();
             }

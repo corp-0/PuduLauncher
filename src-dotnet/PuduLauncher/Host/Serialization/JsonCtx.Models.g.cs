@@ -9,6 +9,10 @@ namespace PuduLauncher;
     PropertyNameCaseInsensitive = true,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     WriteIndented = false)]
+[JsonSerializable(typeof(global::PuduLauncher.Abstractions.Models.CommandResult<global::PuduLauncher.Models.Config.Preferences>))]
+[JsonSerializable(typeof(global::PuduLauncher.Abstractions.Models.CommandResult<global::System.Collections.Generic.List<global::PuduLauncher.Models.Blog.BlogPost>>))]
+[JsonSerializable(typeof(global::PuduLauncher.Abstractions.Models.CommandResult<object>))]
+[JsonSerializable(typeof(global::PuduLauncher.Abstractions.Models.CommandResult<string>))]
 [JsonSerializable(typeof(global::PuduLauncher.Abstractions.Models.EventBase))]
 [JsonSerializable(typeof(global::PuduLauncher.Models.Blog.BlogList))]
 [JsonSerializable(typeof(global::PuduLauncher.Models.Blog.BlogPost))]

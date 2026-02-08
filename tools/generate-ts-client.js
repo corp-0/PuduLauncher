@@ -183,9 +183,25 @@ function normalizeClrTypeForTypeOf(typeText) {
   return typeText.replace(/\?/g, "");
 }
 
+function getCommandResultClrTypeForCommand(cmd, modelByName) {
+  if (cmd.isVoid || !cmd.returnClrType) {
+    return "global::PuduLauncher.Abstractions.Models.CommandResult<object>";
+  }
+
+  const normalized = normalizeClrTypeForTypeOf(cmd.returnClrType);
+  if (isOpenGenericClrType(normalized, modelByName)) {
+    return null;
+  }
+
+  return `global::PuduLauncher.Abstractions.Models.CommandResult<${normalized}>`;
+}
+
 function generateJsonSerializerContext(manifest) {
   const modelByName = new Set((manifest.models ?? []).map((m) => m.name));
-  const clrTypes = new Set(["global::System.String"]);
+  const clrTypes = new Set([
+    "global::System.String",
+    "global::PuduLauncher.Abstractions.Models.CommandResult<object>",
+  ]);
 
   for (const model of manifest.models ?? []) {
     if (!model.clrType) continue;
@@ -205,6 +221,11 @@ function generateJsonSerializerContext(manifest) {
         if (!isOpenGenericClrType(normalized, modelByName)) {
           clrTypes.add(normalized);
         }
+      }
+
+      const commandResultClrType = getCommandResultClrTypeForCommand(cmd, modelByName);
+      if (commandResultClrType) {
+        clrTypes.add(commandResultClrType);
       }
     }
   }
@@ -257,6 +278,7 @@ function generateApiClient(controller, knownTypeNames) {
       importTypes.add(typeName);
     }
   }
+  importTypes.add("CommandResult");
 
   let output = HEADER + "\n";
   if (importTypes.size > 0) {
@@ -271,42 +293,59 @@ function generateApiClient(controller, knownTypeNames) {
   output += `export class ${apiClassName} {\n`;
   for (const cmd of commands) {
     const tsMethodName = toCamelCase(cmd.methodName);
-    const tsReturnType = cmd.returnType || "unknown";
+    const tsInnerReturnType = cmd.isVoid ? "void" : (cmd.returnType || "unknown");
+    const tsReturnType = `CommandResult<${tsInnerReturnType}>`;
 
     const params = cmd.parameters ?? [];
 
     if (params.length === 0) {
       output += `  async ${tsMethodName}(): Promise<${tsReturnType}> {\n`;
       output += "    const baseUrl = await getSidecarBaseUrl();\n";
-      output += `    const response = await fetch(\`\${baseUrl}/api/${controller.name}/${cmd.name}\`, {\n`;
-      output += "      method: 'POST',\n";
-      output += "    });\n";
+      output += "    let response: Response;\n";
+      output += "    try {\n";
+      output += `      response = await fetch(\`\${baseUrl}/api/${controller.name}/${cmd.name}\`, {\n`;
+      output += "        method: 'POST',\n";
+      output += "      });\n";
+      output += "    } catch (error) {\n";
+      output += "      return { success: false, error: error instanceof Error ? error.message : 'Network request failed.' };\n";
+      output += "    }\n";
     } else if (params.length === 1) {
       output += `  async ${tsMethodName}(${params[0].name}: ${params[0].type}): Promise<${tsReturnType}> {\n`;
       output += "    const baseUrl = await getSidecarBaseUrl();\n";
-      output += `    const response = await fetch(\`\${baseUrl}/api/${controller.name}/${cmd.name}\`, {\n`;
-      output += "      method: 'POST',\n";
-      output += "      headers: { 'Content-Type': 'application/json' },\n";
-      output += `      body: JSON.stringify(${params[0].name}),\n`;
-      output += "    });\n";
+      output += "    let response: Response;\n";
+      output += "    try {\n";
+      output += `      response = await fetch(\`\${baseUrl}/api/${controller.name}/${cmd.name}\`, {\n`;
+      output += "        method: 'POST',\n";
+      output += "        headers: { 'Content-Type': 'application/json' },\n";
+      output += `        body: JSON.stringify(${params[0].name}),\n`;
+      output += "      });\n";
+      output += "    } catch (error) {\n";
+      output += "      return { success: false, error: error instanceof Error ? error.message : 'Network request failed.' };\n";
+      output += "    }\n";
     } else {
       const paramSig = params.map(p => `${p.name}: ${p.type}`).join("; ");
       output += `  async ${tsMethodName}(params: { ${paramSig} }): Promise<${tsReturnType}> {\n`;
       output += "    const baseUrl = await getSidecarBaseUrl();\n";
-      output += `    const response = await fetch(\`\${baseUrl}/api/${controller.name}/${cmd.name}\`, {\n`;
-      output += "      method: 'POST',\n";
-      output += "      headers: { 'Content-Type': 'application/json' },\n";
-      output += "      body: JSON.stringify(params),\n";
-      output += "    });\n";
+      output += "    let response: Response;\n";
+      output += "    try {\n";
+      output += `      response = await fetch(\`\${baseUrl}/api/${controller.name}/${cmd.name}\`, {\n`;
+      output += "        method: 'POST',\n";
+      output += "        headers: { 'Content-Type': 'application/json' },\n";
+      output += "        body: JSON.stringify(params),\n";
+      output += "      });\n";
+      output += "    } catch (error) {\n";
+      output += "      return { success: false, error: error instanceof Error ? error.message : 'Network request failed.' };\n";
+      output += "    }\n";
     }
 
-    output +=
-      "    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);\n";
-    if (cmd.isVoid) {
-      output += "    return;\n";
-    } else {
-      output += "    return response.json();\n";
-    }
+    output += "    if (!response.ok) {\n";
+    output += "      return { success: false, error: `HTTP error! status: ${response.status}` };\n";
+    output += "    }\n";
+    output += "    try {\n";
+    output += `      return await response.json() as ${tsReturnType};\n`;
+    output += "    } catch {\n";
+    output += "      return { success: false, error: 'Invalid JSON response from server.' };\n";
+    output += "    }\n";
     output += "  }\n\n";
   }
 
