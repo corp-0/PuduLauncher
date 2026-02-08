@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
-using AppJsonSerializerContext = PuduLauncher.AppJsonSerializerContext;
+using JsonCtx = PuduLauncher.JsonCtx;
 using PuduLauncher.Abstractions.Interfaces;
 using PuduLauncher.Abstractions.Models;
 
@@ -48,8 +48,8 @@ public sealed class WebSocketEventPublisher : IEventPublisher
             throw new ArgumentNullException(nameof(eventData));
 
         // Serialize using the concrete type's generated JsonTypeInfo so derived properties are included
-        var typeInfo = AppJsonSerializerContext.Default.GetTypeInfo(typeof(TEvent))
-            ?? throw new InvalidOperationException($"Type {typeof(TEvent).Name} is not registered in AppJsonSerializerContext. Run 'npm run generate-ts' to refresh src-dotnet/PuduLauncher/Host/Serialization/AppJsonSerializerContext.Models.g.cs.");
+        var typeInfo = JsonCtx.Default.GetTypeInfo(typeof(TEvent))
+            ?? throw new InvalidOperationException($"Type {typeof(TEvent).Name} is not registered in JsonCtx. Run 'npm run generate-ts' to refresh src-dotnet/PuduLauncher/Host/Serialization/JsonCtx.Models.g.cs.");
         var json = JsonSerializer.Serialize(eventData, typeInfo);
         var bytes = Encoding.UTF8.GetBytes(json);
         var segment = new ArraySegment<byte>(bytes);

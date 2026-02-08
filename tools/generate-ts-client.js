@@ -15,7 +15,7 @@ const MANIFEST_BUILD_OUTPUT = "obj/ts-manifest/build-out/";
 const GENERATED_OBJ_DIR = "src-dotnet/PuduLauncher/obj/ts-manifest/generated";
 const OUTPUT_DIR = "src/pudu/generated";
 const JSON_CONTEXT_OUTPUT =
-  "src-dotnet/PuduLauncher/Host/Serialization/AppJsonSerializerContext.Models.g.cs";
+  "src-dotnet/PuduLauncher/Host/Serialization/JsonCtx.Models.g.cs";
 const MANIFEST_FILE = "PuduContractManifest.g.cs";
 const MANIFEST_START = "PUDU_MANIFEST_START";
 const MANIFEST_END = "PUDU_MANIFEST_END";
@@ -195,8 +195,10 @@ function generateJsonSerializerContext(manifest) {
 
   for (const controller of manifest.controllers ?? []) {
     for (const cmd of controller.commands ?? []) {
-      if (cmd.parameterClrType) {
-        clrTypes.add(normalizeClrTypeForTypeOf(cmd.parameterClrType));
+      for (const param of cmd.parameters ?? []) {
+        if (param.clrType) {
+          clrTypes.add(normalizeClrTypeForTypeOf(param.clrType));
+        }
       }
       if (cmd.returnClrType) {
         const normalized = normalizeClrTypeForTypeOf(cmd.returnClrType);
@@ -214,6 +216,7 @@ function generateJsonSerializerContext(manifest) {
   output += "namespace PuduLauncher;\n\n";
   output += "[JsonSourceGenerationOptions(\n";
   output += "    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,\n";
+  output += "    PropertyNameCaseInsensitive = true,\n";
   output += "    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,\n";
   output += "    WriteIndented = false)]\n";
 
@@ -221,7 +224,7 @@ function generateJsonSerializerContext(manifest) {
     output += `[JsonSerializable(typeof(${clrType}))]\n`;
   }
 
-  output += "public partial class AppJsonSerializerContext\n";
+  output += "public partial class JsonCtx\n";
   output += "{\n";
   output += "}\n";
 
@@ -245,8 +248,10 @@ function generateApiClient(controller, knownTypeNames) {
   );
 
   for (const cmd of commands) {
-    for (const typeName of extractTypeNames(cmd.parameterType, knownTypeNames)) {
-      importTypes.add(typeName);
+    for (const param of cmd.parameters ?? []) {
+      for (const typeName of extractTypeNames(param.type, knownTypeNames)) {
+        importTypes.add(typeName);
+      }
     }
     for (const typeName of extractTypeNames(cmd.returnType, knownTypeNames)) {
       importTypes.add(typeName);
@@ -268,19 +273,30 @@ function generateApiClient(controller, knownTypeNames) {
     const tsMethodName = toCamelCase(cmd.methodName);
     const tsReturnType = cmd.returnType || "unknown";
 
-    if (cmd.parameterType) {
-      output += `  async ${tsMethodName}(command: ${cmd.parameterType}): Promise<${tsReturnType}> {\n`;
-      output += "    const baseUrl = await getSidecarBaseUrl();\n";
-      output += `    const response = await fetch(\`\${baseUrl}/api/${controller.name}/${cmd.name}\`, {\n`;
-      output += "      method: 'POST',\n";
-      output += "      headers: { 'Content-Type': 'application/json' },\n";
-      output += "      body: JSON.stringify(command),\n";
-      output += "    });\n";
-    } else {
+    const params = cmd.parameters ?? [];
+
+    if (params.length === 0) {
       output += `  async ${tsMethodName}(): Promise<${tsReturnType}> {\n`;
       output += "    const baseUrl = await getSidecarBaseUrl();\n";
       output += `    const response = await fetch(\`\${baseUrl}/api/${controller.name}/${cmd.name}\`, {\n`;
       output += "      method: 'POST',\n";
+      output += "    });\n";
+    } else if (params.length === 1) {
+      output += `  async ${tsMethodName}(${params[0].name}: ${params[0].type}): Promise<${tsReturnType}> {\n`;
+      output += "    const baseUrl = await getSidecarBaseUrl();\n";
+      output += `    const response = await fetch(\`\${baseUrl}/api/${controller.name}/${cmd.name}\`, {\n`;
+      output += "      method: 'POST',\n";
+      output += "      headers: { 'Content-Type': 'application/json' },\n";
+      output += `      body: JSON.stringify(${params[0].name}),\n`;
+      output += "    });\n";
+    } else {
+      const paramSig = params.map(p => `${p.name}: ${p.type}`).join("; ");
+      output += `  async ${tsMethodName}(params: { ${paramSig} }): Promise<${tsReturnType}> {\n`;
+      output += "    const baseUrl = await getSidecarBaseUrl();\n";
+      output += `    const response = await fetch(\`\${baseUrl}/api/${controller.name}/${cmd.name}\`, {\n`;
+      output += "      method: 'POST',\n";
+      output += "      headers: { 'Content-Type': 'application/json' },\n";
+      output += "      body: JSON.stringify(params),\n";
       output += "    });\n";
     }
 
@@ -331,7 +347,7 @@ function main() {
   const jsonContextContent = generateJsonSerializerContext(manifest);
   mkdirSync(dirname(JSON_CONTEXT_OUTPUT), { recursive: true });
   writeFileSync(JSON_CONTEXT_OUTPUT, jsonContextContent);
-  console.log("[generate-ts] Generated AppJsonSerializerContext.Models.g.cs");
+  console.log("[generate-ts] Generated JsonCtx.Models.g.cs");
 
   const knownTypeNames = new Set([
     ...((manifest.models ?? []).map((m) => m.name)),
