@@ -35,7 +35,7 @@ impl SidecarManager {
         match result {
             Ok(Ok((port, rx))) => {
                 tokio::spawn(Self::forward_output(rx));
-                println!("Sidecar started on port {}", port);
+                log::info!(target: "PuduTauri", "Sidecar started on port {}", port);
                 Ok(port)
             }
             Ok(Err(e)) => Err(e),
@@ -50,7 +50,6 @@ impl SidecarManager {
             match event {
                 CommandEvent::Stdout(line) => {
                     let text = String::from_utf8_lossy(&line);
-                    println!("[PuduBackend] {}", text);
                     if let Some(port_str) = text.strip_prefix("SIDECAR_PORT:") {
                         let port: u16 = port_str
                             .trim()
@@ -58,9 +57,11 @@ impl SidecarManager {
                             .map_err(|e| format!("Invalid port from sidecar: {}", e))?;
                         return Ok((port, rx));
                     }
+                    // Forward any other stdout as info
+                    forward_dotnet_line(&text);
                 }
                 CommandEvent::Stderr(line) => {
-                    eprintln!("[PuduBackend] {}", String::from_utf8_lossy(&line));
+                    forward_dotnet_line(&String::from_utf8_lossy(&line));
                 }
                 CommandEvent::Terminated(payload) => {
                     return Err(format!(
@@ -78,13 +79,13 @@ impl SidecarManager {
         while let Some(event) = rx.recv().await {
             match event {
                 CommandEvent::Stdout(line) => {
-                    println!("[PuduBackend] {}", String::from_utf8_lossy(&line));
+                    forward_dotnet_line(&String::from_utf8_lossy(&line));
                 }
                 CommandEvent::Stderr(line) => {
-                    eprintln!("[PuduBackend] {}", String::from_utf8_lossy(&line));
+                    forward_dotnet_line(&String::from_utf8_lossy(&line));
                 }
                 CommandEvent::Terminated(payload) => {
-                    println!("[PuduBackend] terminated with code: {:?}", payload.code);
+                    log::info!(target: "PuduBackend", "Sidecar terminated with code: {:?}", payload.code);
                     break;
                 }
                 _ => {}
@@ -96,7 +97,7 @@ impl SidecarManager {
     pub fn stop(&self) {
         if let Some(child) = self.process.lock().unwrap().take() {
             let _ = child.kill();
-            println!("Sidecar stopped");
+            log::info!(target: "PuduTauri", "Sidecar stopped");
         }
     }
 }
@@ -104,5 +105,32 @@ impl SidecarManager {
 impl Drop for SidecarManager {
     fn drop(&mut self) {
         self.stop();
+    }
+}
+
+/// Parses a .NET Serilog line like `[INF] message` and forwards it
+/// through the `log` crate at the correct level with target "PuduBackend".
+fn forward_dotnet_line(line: &str) {
+    let trimmed = line.trim();
+    if trimmed.is_empty() {
+        return;
+    }
+
+    // Serilog short level format: [VRB] [DBG] [INF] [WRN] [ERR] [FTL]
+    if let Some(rest) = trimmed.strip_prefix("[FTL] ") {
+        log::error!(target: "PuduBackend", "{}", rest);
+    } else if let Some(rest) = trimmed.strip_prefix("[ERR] ") {
+        log::error!(target: "PuduBackend", "{}", rest);
+    } else if let Some(rest) = trimmed.strip_prefix("[WRN] ") {
+        log::warn!(target: "PuduBackend", "{}", rest);
+    } else if let Some(rest) = trimmed.strip_prefix("[INF] ") {
+        log::info!(target: "PuduBackend", "{}", rest);
+    } else if let Some(rest) = trimmed.strip_prefix("[DBG] ") {
+        log::debug!(target: "PuduBackend", "{}", rest);
+    } else if let Some(rest) = trimmed.strip_prefix("[VRB] ") {
+        log::trace!(target: "PuduBackend", "{}", rest);
+    } else {
+        // No recognized prefix — forward as info
+        log::info!(target: "PuduBackend", "{}", trimmed);
     }
 }
