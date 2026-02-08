@@ -21,6 +21,9 @@ public sealed class WebSocketEventPublisher : IEventPublisher
         _logger = logger;
     }
 
+    /// <inheritdoc/>
+    public bool HasConnectedClients => _clients.Any(c => c.State == WebSocketState.Open);
+
     /// <summary>
     /// Registers a new WebSocket client.
     /// </summary>

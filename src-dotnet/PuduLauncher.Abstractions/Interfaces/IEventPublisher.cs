@@ -9,6 +9,12 @@ namespace PuduLauncher.Abstractions.Interfaces;
 public interface IEventPublisher
 {
     /// <summary>
+    /// Whether any frontend clients are currently connected via WebSocket.
+    /// Background services can use this to skip work when nobody is listening.
+    /// </summary>
+    bool HasConnectedClients { get; }
+
+    /// <summary>
     /// Publishes an event to all connected WebSocket clients.
     /// </summary>
     /// <typeparam name="TEvent">The type of event to publish (must inherit from EventBase).</typeparam>

@@ -12,27 +12,18 @@ public static class HostConfiguration
     /// </summary>
     public static void ConfigurePuduHost(this WebApplicationBuilder builder)
     {
-        var (logDirectory, usedFallbackLogDirectory) = ResolveLogDirectory();
-        var logFilePath = Path.Combine(logDirectory, "pudulauncher-.log");
-
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Information()
             .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
             .Enrich.FromLogContext()
-            // Keep runtime logs away from stdout, which is used for SIDECAR_PORT discovery.
-            .WriteTo.Console(standardErrorFromLevel: LogEventLevel.Verbose)
-            .WriteTo.File(
-                path: logFilePath,
-                rollingInterval: RollingInterval.Day,
-                retainedFileCountLimit: 14,
-                shared: true)
+            // Logs go to stderr only — Rust captures them and writes to the unified log file.
+            // No timestamp: tauri-plugin-log adds its own. Format: [INF] message
+            .WriteTo.Console(
+                outputTemplate: "[{Level:u3}] {Message:lj}{NewLine}{Exception}",
+                standardErrorFromLevel: LogEventLevel.Verbose)
             .CreateLogger();
 
         builder.Host.UseSerilog();
-
-        // Store for later use in startup logging
-        builder.Configuration["Logging:FilePath"] = logFilePath;
-        builder.Configuration["Logging:UsedFallback"] = usedFallbackLogDirectory.ToString();
 
         builder.Services.ConfigureHttpJsonOptions(options =>
         {
@@ -57,21 +48,5 @@ public static class HostConfiguration
     {
         services.AddHttpClient();
         services.AddSingleton<IEventPublisher, WebSocketEventPublisher>();
-    }
-
-    private static (string DirectoryPath, bool FallbackUsed) ResolveLogDirectory()
-    {
-        var preferred = Path.Combine(AppContext.BaseDirectory, "logs");
-        try
-        {
-            Directory.CreateDirectory(preferred);
-            return (preferred, false);
-        }
-        catch
-        {
-            var fallback = Path.Combine(Path.GetTempPath(), "PuduLauncher", "logs");
-            Directory.CreateDirectory(fallback);
-            return (fallback, true);
-        }
     }
 }

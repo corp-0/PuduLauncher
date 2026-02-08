@@ -207,8 +207,9 @@ public class PuduEndpointGenerator : IIncrementalGenerator
                 sb.AppendLine("        {");
 
                 // Deserialize parameters
-                if (cmd.Parameters.Length == 1)
+                if (cmd.Parameters.Length == 1 && cmd.Parameters[0].JsonAccessor is null)
                 {
+                    // Single complex parameter: deserialize the whole body as that type
                     var p = cmd.Parameters[0];
                     sb.AppendLine($"            var commandTypeInfo = JsonCtx.Default.GetTypeInfo(typeof({p.FullyQualifiedType}))");
                     sb.AppendLine($"                ?? throw new InvalidOperationException(\"Type {p.FullyQualifiedType} is not registered in JsonCtx. Run 'npm run generate-ts'.\");");
@@ -219,7 +220,7 @@ public class PuduEndpointGenerator : IIncrementalGenerator
                     sb.AppendLine("                return;");
                     sb.AppendLine("            }");
                 }
-                else if (cmd.Parameters.Length > 1)
+                else if (cmd.Parameters.Length >= 1)
                 {
                     sb.AppendLine("            using var doc = await JsonDocument.ParseAsync(ctx.Request.Body, cancellationToken: ctx.RequestAborted);");
                     sb.AppendLine("            var root = doc.RootElement;");

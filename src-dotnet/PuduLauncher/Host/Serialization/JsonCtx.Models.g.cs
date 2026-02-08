@@ -10,13 +10,17 @@ namespace PuduLauncher;
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     WriteIndented = false)]
 [JsonSerializable(typeof(global::PuduLauncher.Abstractions.Models.EventBase))]
-[JsonSerializable(typeof(global::PuduLauncher.Models.Commands.GreetCommand))]
+[JsonSerializable(typeof(global::PuduLauncher.Models.Blog.BlogList))]
+[JsonSerializable(typeof(global::PuduLauncher.Models.Blog.BlogPost))]
+[JsonSerializable(typeof(global::PuduLauncher.Models.Blog.BlogSection))]
 [JsonSerializable(typeof(global::PuduLauncher.Models.Config.Preferences))]
 [JsonSerializable(typeof(global::PuduLauncher.Models.Events.ServerListUpdatedEvent))]
 [JsonSerializable(typeof(global::PuduLauncher.Models.Events.TimerEvent))]
 [JsonSerializable(typeof(global::PuduLauncher.Models.Game.GameServer))]
 [JsonSerializable(typeof(global::PuduLauncher.Models.ServerList))]
+[JsonSerializable(typeof(global::System.Collections.Generic.List<global::PuduLauncher.Models.Blog.BlogPost>))]
 [JsonSerializable(typeof(global::System.String))]
+[JsonSerializable(typeof(int))]
 [JsonSerializable(typeof(string))]
 public partial class JsonCtx
 {

@@ -17,6 +17,13 @@ public class ServerListService(
     {
         while (!stoppingToken.IsCancellationRequested)
         {
+            if (!eventPublisher.HasConnectedClients)
+            {
+                logger.LogDebug("No clients connected, skipping server list fetch");
+                await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
+                continue;
+            }
+
             try
             {
                 var servers = await FetchServerListAsync(stoppingToken);

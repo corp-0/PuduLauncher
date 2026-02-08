@@ -13,15 +13,6 @@ public static class AppConfiguration
     /// </summary>
     public static void MapPuduInfrastructure(this WebApplication app)
     {
-        var usedFallback = bool.Parse(app.Configuration["Logging:UsedFallback"] ?? "false");
-        if (usedFallback)
-        {
-            var logFilePath = app.Configuration["Logging:FilePath"];
-            app.Logger.LogWarning(
-                "Could not create logs directory next to executable. Using fallback directory: {LogDirectory}",
-                Path.GetDirectoryName(logFilePath));
-        }
-
         app.UseCors();
         app.UseWebSockets();
         
@@ -78,7 +69,6 @@ public static class AppConfiguration
         Console.Out.Flush();
 
         app.Logger.LogInformation("PuduLauncher Sidecar started on port {Port}", port);
-        app.Logger.LogInformation("Log file path pattern: {LogFilePath}", app.Configuration["Logging:FilePath"]);
 
         await app.WaitForShutdownAsync();
     }

@@ -17,6 +17,8 @@ try
     // Register your services below:
     builder.Services.AddSingleton<IEnvironmentService, EnvironmentService>();
     builder.Services.AddSingleton<IPreferencesService, PreferencesService>();
+    builder.Services.AddSingleton<IBlogService, BlogService>();
+    builder.Services.AddSingleton<IPingService, PingService>();
     builder.Services.AddHostedService<ServerListService>();
 
     // ── App ───────────────────────────────────────────
