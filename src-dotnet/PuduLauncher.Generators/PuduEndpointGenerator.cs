@@ -21,6 +21,12 @@ public class PuduEndpointGenerator : IIncrementalGenerator
     private const string PuduEventAttributeName =
         "PuduLauncher.Abstractions.Attributes.PuduEventAttribute";
 
+    private const string PreferenceCategoryAttributeName =
+        "PuduLauncher.Abstractions.Attributes.PreferenceCategoryAttribute";
+
+    private const string PreferenceFieldAttributeName =
+        "PuduLauncher.Abstractions.Attributes.PreferenceFieldAttribute";
+
     private const string EventBaseTypeName =
         "PuduLauncher.Abstractions.Models.EventBase";
 
@@ -340,10 +346,16 @@ public class PuduEndpointGenerator : IIncrementalGenerator
                 .OfType<IPropertySymbol>()
                 .Where(IsSerializableInstanceProperty)
                 .OrderBy(p => p.Locations.FirstOrDefault()?.SourceSpan.Start ?? int.MaxValue)
-                .Select(p => new ModelPropertyInfo(
-                    Name: ToCamelCase(p.Name),
-                    Type: MapTypeToTypeScript(p.Type),
-                    Optional: IsOptionalProperty(p)))
+                .Select(p =>
+                {
+                    var (label, component) = GetPreferenceFieldInfo(p);
+                    return new ModelPropertyInfo(
+                        Name: ToCamelCase(p.Name),
+                        Type: MapTypeToTypeScript(p.Type),
+                        Optional: IsOptionalProperty(p),
+                        Label: label,
+                        Component: component);
+                })
                 .ToArray();
 
             string? baseType = null;
@@ -356,6 +368,7 @@ public class PuduEndpointGenerator : IIncrementalGenerator
                 ClrType: symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                 BaseType: baseType,
                 EventType: GetEventType(symbol, eventBaseSymbol),
+                CategoryLabel: GetCategoryLabel(symbol),
                 Properties: properties));
         }
 
@@ -447,6 +460,35 @@ public class PuduEndpointGenerator : IIncrementalGenerator
             return null;
 
         return eventType;
+    }
+
+    private static string? GetCategoryLabel(INamedTypeSymbol symbol)
+    {
+        var attr = symbol.GetAttributes().FirstOrDefault(a =>
+            a.AttributeClass?.ToDisplayString() == PreferenceCategoryAttributeName);
+
+        if (attr is null || attr.ConstructorArguments.Length == 0)
+            return null;
+
+        var label = attr.ConstructorArguments[0].Value as string;
+        return string.IsNullOrWhiteSpace(label) ? null : label;
+    }
+
+    private static (string? Label, string? Component) GetPreferenceFieldInfo(IPropertySymbol property)
+    {
+        var attr = property.GetAttributes().FirstOrDefault(a =>
+            a.AttributeClass?.ToDisplayString() == PreferenceFieldAttributeName);
+
+        if (attr is null || attr.ConstructorArguments.Length < 2)
+            return (null, null);
+
+        var label = attr.ConstructorArguments[0].Value as string;
+        var component = attr.ConstructorArguments[1].Value as string;
+
+        if (string.IsNullOrWhiteSpace(label) || string.IsNullOrWhiteSpace(component))
+            return (null, null);
+
+        return (label, component);
     }
 
     private static bool InheritsFrom(INamedTypeSymbol symbol, INamedTypeSymbol baseTypeSymbol)
@@ -574,6 +616,11 @@ public class PuduEndpointGenerator : IIncrementalGenerator
             sb.Append("null");
         else
             AppendJsonString(sb, model.EventType);
+        sb.Append(",\"categoryLabel\":");
+        if (model.CategoryLabel is null)
+            sb.Append("null");
+        else
+            AppendJsonString(sb, model.CategoryLabel);
         sb.Append(",\"properties\":[");
 
         for (int i = 0; i < model.Properties.Length; i++)
@@ -588,6 +635,16 @@ public class PuduEndpointGenerator : IIncrementalGenerator
             AppendJsonString(sb, property.Type);
             sb.Append(",\"optional\":");
             sb.Append(property.Optional ? "true" : "false");
+            sb.Append(",\"label\":");
+            if (property.Label is null)
+                sb.Append("null");
+            else
+                AppendJsonString(sb, property.Label);
+            sb.Append(",\"component\":");
+            if (property.Component is null)
+                sb.Append("null");
+            else
+                AppendJsonString(sb, property.Component);
             sb.Append('}');
         }
 
@@ -888,10 +945,13 @@ public class PuduEndpointGenerator : IIncrementalGenerator
         string ClrType,
         string? BaseType,
         string? EventType,
+        string? CategoryLabel,
         ModelPropertyInfo[] Properties);
 
     private record ModelPropertyInfo(
         string Name,
         string Type,
-        bool Optional);
+        bool Optional,
+        string? Label,
+        string? Component);
 }

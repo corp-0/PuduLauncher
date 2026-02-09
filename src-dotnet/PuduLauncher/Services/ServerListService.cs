@@ -39,7 +39,7 @@ public class ServerListService(
                 logger.LogError(ex, "Failed to fetch server list");
             }
 
-            var interval = TimeSpan.FromSeconds(preferences.GetPreferences().ServerListFetchIntervalSeconds);
+            var interval = TimeSpan.FromSeconds(preferences.GetPreferences().Servers.ServerListFetchIntervalSeconds);
             await Task.Delay(interval, stoppingToken);
         }
     }
@@ -47,7 +47,7 @@ public class ServerListService(
     public async Task<List<GameServer>> FetchServerListAsync(CancellationToken ct = default)
     {
         using HttpClient client = httpClientFactory.CreateClient();
-        string data = await client.GetStringAsync(preferences.GetPreferences().ServerListApi, ct);
+        string data = await client.GetStringAsync(preferences.GetPreferences().Servers.ServerListApi, ct);
         ServerList? serverData = JsonSerializer.Deserialize(data, JsonCtx.Default.ServerList);
         return serverData?.Servers ?? [];
     }

@@ -1,14 +1,11 @@
-﻿using PuduLauncher.Constants;
-
 namespace PuduLauncher.Models.Config;
 
 public class Preferences
 {
-    public string ServerListApi { get; set; } = Api.ServerListUrl;
-    public int ServerListFetchIntervalSeconds { get; set; } = 10;
-    public string Version { get; set; } = "1.0.0";
-    public bool AutoRemove { get; set; }
-    public int IgnoreVersionUpdate { get; set; }
-    public string InstallationPath { get; set; } = "";
-    public bool IsTtsEnabled { get; set; } = true;
+    public const int CurrentVersion = 2;
+
+    public int Version { get; set; } = CurrentVersion;
+    public LauncherPreferences Launcher { get; set; } = new();
+    public ServerPreferences Servers { get; set; } = new();
+    public InstallationPreferences Installations { get; set; } = new();
 }

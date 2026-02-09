@@ -1,6 +1,7 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using PuduLauncher.Models.Config;
 using PuduLauncher.Services.Interfaces;
+using PuduLauncher.Services.Migrations;
 
 namespace PuduLauncher.Services;
 
@@ -17,6 +18,7 @@ public class PreferencesService : IPreferencesService
         _logger = logger;
         _preferencesFilePath = Path.Combine(_environmentService.GetUserdataDirectory(), "prefs.json");
         EnsurePreferencesFileExists();
+        MigrateIfNeeded();
     }
 
     public Preferences GetPreferences()
@@ -26,21 +28,34 @@ public class PreferencesService : IPreferencesService
             return _preferences;
         }
 
-        string preferencesJson = File.ReadAllText(_preferencesFilePath);
-        _preferences = JsonSerializer.Deserialize(preferencesJson, JsonCtx.Default.Preferences);
-
+        string json = File.ReadAllText(_preferencesFilePath);
+        _preferences = JsonSerializer.Deserialize(json, JsonCtx.Default.Preferences);
         _preferences ??= new();
 
-        if (string.IsNullOrWhiteSpace(_preferences.InstallationPath))
+        if (string.IsNullOrWhiteSpace(_preferences.Installations.InstallationPath))
         {
-            _preferences.InstallationPath = Path.Combine(_environmentService.GetUserdataDirectory(), "Installations");
+            _preferences.Installations.InstallationPath =
+                Path.Combine(_environmentService.GetUserdataDirectory(), "Installations");
         }
 
         return _preferences;
     }
 
+    private void MigrateIfNeeded()
+    {
+        string rawJson = File.ReadAllText(_preferencesFilePath);
+
+        var (migratedJson, wasMigrated) = PreferencesMigrator.MigrateToLatest(rawJson);
+
+        if (!wasMigrated) return;
+
+        File.WriteAllText(_preferencesFilePath, migratedJson);
+        _logger.LogInformation("Preferences migrated and saved to {Path}", _preferencesFilePath);
+    }
+
     public async Task UpdatePreferencesAsync(Preferences preferences)
     {
+        preferences.Version = Preferences.CurrentVersion;
         _preferences = preferences;
 
         await using FileStream file = File.Create(_preferencesFilePath);
@@ -59,10 +74,9 @@ public class PreferencesService : IPreferencesService
 
         if (File.Exists(_preferencesFilePath)) return;
 
-        var defaults = new Preferences
-        {
-            InstallationPath = Path.Combine(_environmentService.GetUserdataDirectory(), "Installations")
-        };
+        var defaults = new Preferences();
+        defaults.Installations.InstallationPath =
+            Path.Combine(_environmentService.GetUserdataDirectory(), "Installations");
 
         var json = JsonSerializer.Serialize(defaults, JsonCtx.Default.Preferences);
         File.WriteAllText(_preferencesFilePath, json);

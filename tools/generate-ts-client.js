@@ -357,9 +357,89 @@ function generateApiClient(controller, knownTypeNames) {
   };
 }
 
-function generateIndex(apiFiles) {
+function generatePreferencesSchema(manifest) {
+  const models = manifest.models ?? [];
+
+  // Build map: model name → model (for models with categoryLabel)
+  const categoryModels = new Map();
+  for (const model of models) {
+    if (typeof model.categoryLabel === "string" && model.categoryLabel.length > 0) {
+      categoryModels.set(model.name, model);
+    }
+  }
+
+  if (categoryModels.size === 0) return null;
+
+  // Find the Preferences model to determine category keys (property names)
+  const preferencesModel = models.find((m) => m.name === "Preferences");
+  if (!preferencesModel) return null;
+
+  const categories = [];
+  for (const prop of preferencesModel.properties ?? []) {
+    const categoryModel = categoryModels.get(prop.type);
+    if (!categoryModel) continue;
+
+    const fields = [];
+    for (const field of categoryModel.properties ?? []) {
+      if (typeof field.label === "string" && typeof field.component === "string") {
+        fields.push({ key: field.name, label: field.label, component: field.component });
+      }
+    }
+
+    categories.push({
+      key: prop.name,
+      label: categoryModel.categoryLabel,
+      fields,
+    });
+  }
+
+  if (categories.length === 0) return null;
+
+  // Collect unique component values for the union type
+  const componentValues = new Set();
+  for (const cat of categories) {
+    for (const field of cat.fields) {
+      componentValues.add(field.component);
+    }
+  }
+  const sortedComponents = [...componentValues].sort();
+
+  let output = HEADER + "\n";
+  output += `export type PreferenceComponent = ${sortedComponents.map((c) => `'${escapeTsStringLiteral(c)}'`).join(" | ")};\n\n`;
+  output += "export interface PreferenceFieldSchema {\n";
+  output += "  key: string;\n";
+  output += "  label: string;\n";
+  output += "  component: PreferenceComponent;\n";
+  output += "}\n\n";
+  output += "export interface PreferenceCategorySchema {\n";
+  output += "  key: string;\n";
+  output += "  label: string;\n";
+  output += "  fields: PreferenceFieldSchema[];\n";
+  output += "}\n\n";
+  output += "export const preferencesSchema: PreferenceCategorySchema[] = [\n";
+
+  for (const cat of categories) {
+    output += "  {\n";
+    output += `    key: '${escapeTsStringLiteral(cat.key)}',\n`;
+    output += `    label: '${escapeTsStringLiteral(cat.label)}',\n`;
+    output += "    fields: [\n";
+    for (const field of cat.fields) {
+      output += `      { key: '${escapeTsStringLiteral(field.key)}', label: '${escapeTsStringLiteral(field.label)}', component: '${escapeTsStringLiteral(field.component)}' },\n`;
+    }
+    output += "    ],\n";
+    output += "  },\n";
+  }
+
+  output += "];\n";
+  return output;
+}
+
+function generateIndex(apiFiles, hasPreferencesSchema) {
   let output = HEADER + "\n";
   output += "export * from './types';\n";
+  if (hasPreferencesSchema) {
+    output += "export * from './preferences-schema';\n";
+  }
   for (const { fileName, apiClassName } of apiFiles) {
     const moduleName = "./" + fileName.replace(".ts", "");
     output += `export { ${apiClassName} } from '${moduleName}';\n`;
@@ -392,6 +472,13 @@ function main() {
     ...((manifest.models ?? []).map((m) => m.name)),
   ]);
 
+  const preferencesSchemaContent = generatePreferencesSchema(manifest);
+  const hasPreferencesSchema = preferencesSchemaContent !== null;
+  if (hasPreferencesSchema) {
+    writeFileSync(join(OUTPUT_DIR, "preferences-schema.ts"), preferencesSchemaContent);
+    console.log("[generate-ts] Generated preferences-schema.ts");
+  }
+
   const apiFiles = [];
   for (const controller of controllers) {
     const { fileName, content, apiClassName } = generateApiClient(
@@ -403,7 +490,7 @@ function main() {
     console.log(`[generate-ts] Generated ${fileName}`);
   }
 
-  const indexContent = generateIndex(apiFiles);
+  const indexContent = generateIndex(apiFiles, hasPreferencesSchema);
   writeFileSync(join(OUTPUT_DIR, "index.ts"), indexContent);
   console.log("[generate-ts] Generated index.ts");
 
