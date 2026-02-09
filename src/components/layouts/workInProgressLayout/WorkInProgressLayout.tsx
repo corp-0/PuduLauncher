@@ -6,7 +6,7 @@ type PlaceholderImage = {
     alt: string;
 };
 
-const imagePool: PlaceholderImage[] = [
+export const workInProgressImagePool: readonly PlaceholderImage[] = [
     {
         src: "/aiPlaceholders/pudu-nap.png",
         alt: "Pudu taking a nap",
@@ -25,8 +25,25 @@ function pickRandom<T>(items: readonly T[]): T {
     return items[Math.floor(Math.random() * items.length)];
 }
 
-export default function WorkInProgressLayout() {
-    const [selectedImage] = useState(() => pickRandom(imagePool));
+function pickByIndex<T>(items: readonly T[], index: number): T {
+    if (items.length === 0) {
+        throw new Error("pickByIndex requires at least one item");
+    }
+
+    const safeIndex = ((Math.trunc(index) % items.length) + items.length) % items.length;
+    return items[safeIndex];
+}
+
+type WorkInProgressLayoutProps = {
+    imageIndex?: number;
+};
+
+export default function WorkInProgressLayout(props: WorkInProgressLayoutProps) {
+    const {imageIndex} = props;
+    const [randomImage] = useState(() => pickRandom(workInProgressImagePool));
+    const selectedImage = imageIndex === undefined
+        ? randomImage
+        : pickByIndex(workInProgressImagePool, imageIndex);
 
     return (
         <>

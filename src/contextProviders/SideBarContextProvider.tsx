@@ -15,8 +15,8 @@ import {
     useMemo
 } from "react";
 import {useMatch, useNavigate} from "react-router";
-import {SideBarMenuItemProps} from "../components/molecules/SideBar/SideBarMenuItem";
-import {SideBarExternalLinkProps} from "../components/molecules/SideBar/SideBarExternalLink";
+import {SideBarMenuItemProps} from "../components/molecules/sideBar/SideBarMenuItem";
+import {SideBarExternalLinkProps} from "../components/molecules/sideBar/SideBarExternalLink";
 
 interface SideBarContextValue {
     menuItems: SideBarMenuItemProps[];

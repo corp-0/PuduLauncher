@@ -1,14 +1,14 @@
-import {Box} from "@mui/joy";
-import SideBar from "../organisms/SideBar/SideBar";
-import {Outlet} from "react-router";
-import {SideBarContextProvider} from "../../contextProviders/SideBarContextProvider";
+import { Box } from "@mui/joy";
+import SideBar from "../organisms/sideBar/SideBar";
+import { Outlet } from "react-router";
+import { SideBarContextProvider } from "../../contextProviders/SideBarContextProvider";
 
 export default function SideBarLayout() {
 
     return (
-        <Box sx={{display: 'flex', height: '100dvh', width: '100dvw', flexDirection: "row"}}>
+        <Box sx={{ display: 'flex', height: '100dvh', width: '100dvw', flexDirection: "row" }}>
             <SideBarContextProvider>
-                <SideBar/>
+                <SideBar />
             </SideBarContextProvider>
             <Box sx={{
                 flex: 1,
@@ -17,7 +17,7 @@ export default function SideBarLayout() {
                 overflow: "hidden",
                 minWidth: 0
             }}>
-                <Outlet/>
+                <Outlet />
             </Box>
         </Box>
     )

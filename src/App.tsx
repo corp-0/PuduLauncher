@@ -3,7 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router";
 import { CssBaseline, CssVarsProvider } from "@mui/joy";
 import SideBarLayout from "./components/layouts/SideBarLayout";
 import ServersPage from "./components/pages/ServersPage";
-import WorkInProgressLayout from "./components/layouts/WorkInProgressLayout/WorkInProgressLayout";
+import WorkInProgressLayout from "./components/layouts/workInProgressLayout/WorkInProgressLayout";
 import { useThemeContext } from "./contextProviders/ThemeProvider";
 import { themeRegistry } from "./themes";
 
