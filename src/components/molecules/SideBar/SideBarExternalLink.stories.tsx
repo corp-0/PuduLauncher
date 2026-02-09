@@ -1,6 +1,6 @@
-import {Message, Public} from "@mui/icons-material";
-import {Box, Stack} from "@mui/joy";
-import type {Meta, StoryObj} from "@storybook/react-vite";
+import { Message, Public } from "@mui/icons-material";
+import { Box, Stack } from "@mui/joy";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import SideBarExternalLink from "./SideBarExternalLink";
 
 const meta = {
@@ -9,11 +9,12 @@ const meta = {
     parameters: {
         layout: "centered",
     },
+    tags: ["autodocs"],
     decorators: [
         (Story) => (
-            <Box sx={{bgcolor: "background.body", p: 2, borderRadius: "sm"}}>
+            <Box sx={{ bgcolor: "background.body", p: 2, borderRadius: "sm" }}>
                 <Stack direction="row" gap={2}>
-                    <Story/>
+                    <Story />
                 </Stack>
             </Box>
         ),
@@ -31,13 +32,13 @@ type Story = StoryObj<typeof meta>;
 export const Website: Story = {
     args: {
         tooltip: "Unitystation's website",
-        icon: <Public/>,
+        icon: <Public />,
     },
 };
 
 export const Discord: Story = {
     args: {
         tooltip: "Unitystation's Discord",
-        icon: <Message/>,
+        icon: <Message />,
     },
 };
