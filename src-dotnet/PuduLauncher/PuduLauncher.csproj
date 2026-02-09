@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PuduLauncher.Abstractions\PuduLauncher.Abstractions.csproj" />
+    <ProjectReference Include="..\PuduLauncher.ContentScanning\PuduLauncher.ContentScanning.csproj" />
     <ProjectReference Include="..\PuduLauncher.Generators\PuduLauncher.Generators.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>

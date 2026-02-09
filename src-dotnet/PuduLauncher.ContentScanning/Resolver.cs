@@ -1,0 +1,89 @@
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
+using ILVerify;
+using Serilog;
+
+namespace PuduLauncher.ContentScanning;
+
+public sealed class Resolver : IResolver
+{
+    private readonly DirectoryInfo _managedPath;
+
+    private readonly Dictionary<string, PEReader> _dictionaryLookup = new();
+
+    public Resolver(DirectoryInfo inManagedPath)
+    {
+        _managedPath = inManagedPath;
+    }
+
+    public void Dispose()
+    {
+        foreach (KeyValuePair<string, PEReader> lookup in _dictionaryLookup)
+        {
+            lookup.Value.Dispose();
+        }
+    }
+
+    public PEReader ResolveAssembly(AssemblyNameInfo assemblyName)
+    {
+        if (assemblyName.Name == null)
+        {
+            throw new FileNotFoundException("Unable to find " + assemblyName.FullName);
+        }
+
+        if (_dictionaryLookup.TryGetValue(assemblyName.Name, out PEReader? assembly))
+        {
+            return assembly;
+        }
+
+        FileInfo[] files = _managedPath.GetFiles("*.dll");
+
+        foreach (FileInfo file in files)
+        {
+            string fileName = Path.GetFileNameWithoutExtension(file.Name);
+            if (string.Equals(fileName, assemblyName.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                Log.Information("Found DLL for assembly \'{AssemblyNameName}\': {FileFullName}", assemblyName.Name, file.FullName);
+                _dictionaryLookup[assemblyName.Name] =
+                    new(file.Open(FileMode.Open, FileAccess.Read, FileShare.Read));
+                return _dictionaryLookup[assemblyName.Name];
+            }
+        }
+
+        files = _managedPath.GetFiles("*.so");
+
+        foreach (FileInfo file in files)
+        {
+            string fileName = Path.GetFileNameWithoutExtension(file.Name);
+            if (string.Equals(fileName, assemblyName.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                Log.Information("Found DLL for assembly \'{AssemblyNameName}\': {FileFullName}", assemblyName.Name, file.FullName);
+                _dictionaryLookup[assemblyName.Name] =
+                    new(file.Open(FileMode.Open, FileAccess.Read, FileShare.Read));
+                return _dictionaryLookup[assemblyName.Name];
+            }
+        }
+
+        files = _managedPath.GetFiles("*.dylib");
+
+        foreach (FileInfo file in files)
+        {
+            string fileName = Path.GetFileNameWithoutExtension(file.Name);
+            if (string.Equals(fileName, assemblyName.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                Log.Information("Found DLL for assembly \'{AssemblyNameName}\': {FileFullName}", assemblyName.Name, file.FullName);
+                _dictionaryLookup[assemblyName.Name] =
+                    new(file.Open(FileMode.Open, FileAccess.Read, FileShare.Read));
+                return _dictionaryLookup[assemblyName.Name];
+            }
+        }
+
+        throw new FileNotFoundException("Unable to find it " + assemblyName.FullName);
+    }
+
+    public PEReader ResolveModule(AssemblyNameInfo referencingAssembly, string fileName)
+    {
+        throw new NotImplementedException(
+            $"idk How IResolver.ResolveModule(AssemblyName {referencingAssembly}, string {fileName}) , And it's never been called so.. ");
+    }
+}
