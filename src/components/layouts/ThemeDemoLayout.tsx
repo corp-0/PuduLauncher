@@ -48,9 +48,9 @@ import {
     Typography,
 } from "@mui/joy";
 import { useState } from "react";
-import Section from "./ThemeDemoSection";
+import Section from "../molecules/themeDemo/ThemeDemoSection";
 
-export default function ThemeDemo() {
+export default function ThemeDemoLayout() {
     const [switchChecked, setSwitchChecked] = useState(true);
     const [sliderValue, setSliderValue] = useState(40);
     const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -58,7 +58,7 @@ export default function ThemeDemo() {
 
 
     return (
-        <Box sx={{ p: 3, maxWidth: 900, mx: "auto" }}>
+        <Box sx={{ p: 3, overflowY: "auto", maxHeight: "100%" }}>
             <Typography level="h1" sx={{ mb: 1 }}>
                 Pudu Theme Showcase
             </Typography>

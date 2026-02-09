@@ -10,13 +10,17 @@
     "tauri": "tauri",
     "generate-ts": "node tools/generate-ts-client.js",
     "build-sidecar": "node tools/build-sidecar.js",
-    "build-sidecar:release": "node tools/build-sidecar.js --release"
+    "build-sidecar:release": "node tools/build-sidecar.js --release",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@fontsource/inter": "^5.2.8",
+    "@mui/icons-material": "^7.3.7",
     "@mui/joy": "^5.0.0-beta.52",
+    "@mui/material": "^7.3.7",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-log": "^2.8.0",
     "@tauri-apps/plugin-opener": "^2",
@@ -25,11 +29,22 @@
     "react-router": "^7.13.0"
   },
   "devDependencies": {
+    "@chromatic-com/storybook": "^5.0.1",
+    "@storybook/addon-a11y": "^10.2.8",
+    "@storybook/addon-docs": "^10.2.8",
+    "@storybook/addon-onboarding": "^10.2.8",
+    "@storybook/addon-vitest": "^10.2.8",
+    "@storybook/react-vite": "^10.2.8",
     "@tauri-apps/cli": "^2",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
+    "@vitest/browser-playwright": "^4.0.18",
+    "@vitest/coverage-v8": "^4.0.18",
+    "playwright": "^1.58.2",
+    "storybook": "^10.2.8",
     "typescript": "~5.8.3",
-    "vite": "^7.0.4"
+    "vite": "^7.0.4",
+    "vitest": "^4.0.18"
   }
 }

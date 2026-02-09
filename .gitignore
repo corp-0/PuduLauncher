@@ -70,3 +70,5 @@ src-tauri/binaries/*
 # Auto-generated TypeScript client (rebuilt by tools/generate-ts-client.js)
 src/pudu/generated/
 !src/pudu/generated/.gitkeep
+*storybook.log
+storybook-static
