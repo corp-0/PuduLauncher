@@ -13,7 +13,7 @@ export default function SideBar() {
     return (
         <Stack alignItems="center" justifyContent="space-between" direction="column" spacing={2} padding={1}
                sx={{
-                   bgcolor: "Background.body",
+                   bgcolor: "background.body",
                    height: '100%',
                    minWidth: 240,
                    flex: "0 0 clamp(240px, 18vw, 340px)",
