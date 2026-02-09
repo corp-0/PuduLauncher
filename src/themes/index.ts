@@ -1,2 +1,9 @@
-export { default as puduTheme } from "./pudu";
-export { default as unitystationClassicTheme } from "./unitystationClassic";
+import puduTheme from "./pudu"
+import unitystationClassicTheme from "./unitystationClassic"
+
+export const themeRegistry = {
+    unitystationClassic: unitystationClassicTheme,
+    pudu: puduTheme,
+} as const;
+
+export type ThemeId = keyof typeof themeRegistry;
