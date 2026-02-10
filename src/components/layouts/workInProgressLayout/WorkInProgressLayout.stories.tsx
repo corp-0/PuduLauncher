@@ -1,7 +1,7 @@
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import WorkInProgressLayout, { workInProgressImagePool } from "./WorkInProgressLayout.tsx";
+import type {Meta, StoryObj} from "@storybook/react-vite";
+import WorkInProgressLayout from "./WorkInProgressLayout.tsx";
+import {Box, GlobalStyles} from "@mui/joy";
 
-const imageIndexOptions = workInProgressImagePool.map((_, index) => index);
 
 const meta = {
     title: "Layouts/WorkInProgressLayout",
@@ -9,28 +9,26 @@ const meta = {
     parameters: {
         layout: "fullscreen",
     },
-    args: {
-        imageIndex: 0,
-    },
-    argTypes: {
-        imageIndex: {
-            options: imageIndexOptions,
-            control: {type: "inline-radio"},
-        },
-    },
+    decorators: [
+        (Story) => (
+            <>
+                <GlobalStyles styles={{
+                    "html, body, #storybook-root": {
+                        backgroundColor: "background.surface",
+                    },
+                }}/>
+                <Box sx={{
+                    bgcolor: "background.surface",
+                    width: "100%",
+                    minHeight: "100dvh",
+                }}>
+                    <Story/>
+                </Box>
+            </>
+        ),
+    ]
 } satisfies Meta<typeof WorkInProgressLayout>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
-
-export const PuduNap: Story = {
-    args: {
-        imageIndex: 0,
-    },
-};
-
-export const PuduSnack: Story = {
-    args: {
-        imageIndex: 1,
-    },
-};
+export const Default: Story = {};
