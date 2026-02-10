@@ -1,4 +1,5 @@
 import {
+    Code,
     Favorite,
     Message,
     Newspaper,
@@ -33,6 +34,7 @@ export function SideBarContextProvider(props: PropsWithChildren) {
     const isNewsActive = useMatch({path: "/news/*", end: false}) !== null;
     const isInstallationsActive = useMatch({path: "/installations/*", end: false}) !== null;
     const isPreferencesActive = useMatch({path: "/preferences/*", end: false}) !== null;
+    const isComponentsActive = useMatch({path: "/components/*", end: false}) !== null;
 
     const menuItems = useMemo<SideBarMenuItemProps[]>(() => ([
         {
@@ -58,6 +60,12 @@ export function SideBarContextProvider(props: PropsWithChildren) {
             icon: <Settings/>,
             isActive: isPreferencesActive,
             onClick: () => navigate("/preferences"),
+        },
+        {
+            text: "Components Demo",
+            icon: <Code/>,
+            isActive: isComponentsActive,
+            onClick: () => navigate("/components"),
         },
     ]), [
         isInstallationsActive,

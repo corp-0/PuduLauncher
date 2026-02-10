@@ -1,14 +1,14 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import type {Meta, StoryObj} from '@storybook/react-vite';
 
 import ServerCard from './ServerCard';
-import { Box, GlobalStyles } from "@mui/joy";
+import {Box, GlobalStyles} from "@mui/joy";
 
 const meta = {
     component: ServerCard,
     tags: ["autodocs"],
     args: {
         name: "Unitystation - Staging",
-        map: "StartshipStation",
+        map: "StarshipStation",
         build: "4113",
         mode: "Secret",
         roundTime: "1h 23m",
@@ -28,13 +28,13 @@ const meta = {
                     "html, body, #storybook-root": {
                         backgroundColor: "background.surface",
                     },
-                }} />
+                }}/>
                 <Box sx={{
                     bgcolor: "background.surface",
                     width: "100%",
                     minHeight: "100dvh",
                 }}>
-                    <Story />
+                    <Story/>
                 </Box>
             </>
         ),
@@ -84,18 +84,5 @@ export const ScanningFailed: Story = {
             label: "Scan failed",
             value: 100,
         },
-    },
-};
-
-export const NearCapacity: Story = {
-    args: {
-        name: "Unitystation - Staging",
-        map: "DeltaStation",
-        mode: "Extended",
-        roundTime: "48m",
-        playersOnline: 82,
-        playerCapacity: 90,
-        pingMs: 67,
-        actionState: "join",
     },
 };
