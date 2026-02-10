@@ -13,7 +13,7 @@ namespace PuduLauncher.Host.Infrastructure;
 /// </summary>
 public sealed class WebSocketEventPublisher : IEventPublisher
 {
-    private readonly ConcurrentBag<WebSocket> _clients = new();
+    private readonly ConcurrentDictionary<WebSocket, byte> _clients = new();
     private readonly ILogger<WebSocketEventPublisher> _logger;
 
     public WebSocketEventPublisher(ILogger<WebSocketEventPublisher> logger)
@@ -22,14 +22,14 @@ public sealed class WebSocketEventPublisher : IEventPublisher
     }
 
     /// <inheritdoc/>
-    public bool HasConnectedClients => _clients.Any(c => c.State == WebSocketState.Open);
+    public bool HasConnectedClients => _clients.Keys.Any(c => c.State == WebSocketState.Open);
 
     /// <summary>
     /// Registers a new WebSocket client.
     /// </summary>
     public void AddClient(WebSocket webSocket)
     {
-        _clients.Add(webSocket);
+        _clients.TryAdd(webSocket, 0);
         _logger.LogInformation("WebSocket client connected. Total clients: {Count}", _clients.Count);
     }
 
@@ -38,9 +38,8 @@ public sealed class WebSocketEventPublisher : IEventPublisher
     /// </summary>
     public void RemoveClient(WebSocket webSocket)
     {
-        // Note: ConcurrentBag doesn't have a Remove method, but disconnected sockets
-        // will fail to send and be skipped in PublishAsync
-        _logger.LogInformation("WebSocket client disconnected");
+        _clients.TryRemove(webSocket, out _);
+        _logger.LogInformation("WebSocket client disconnected. Total clients: {Count}", _clients.Count);
     }
 
     /// <inheritdoc/>
@@ -62,7 +61,7 @@ public sealed class WebSocketEventPublisher : IEventPublisher
         var sendTasks = new List<Task>();
         var clientsToRemove = new List<WebSocket>();
 
-        foreach (var client in _clients)
+        foreach (var client in _clients.Keys)
         {
             if (client.State == WebSocketState.Open)
             {
@@ -78,7 +77,8 @@ public sealed class WebSocketEventPublisher : IEventPublisher
 
         foreach (var client in clientsToRemove)
         {
-            _logger.LogDebug("Removing closed WebSocket client");
+            _clients.TryRemove(client, out _);
+            _logger.LogDebug("Removed closed WebSocket client. Total clients: {Count}", _clients.Count);
         }
     }
 

@@ -16,6 +16,7 @@ public class GameServer
     public int PlayerCountMax { get; set; }
     public string? ServerIp { get; set; }
     public int ServerPort { get; set; }
+    public int PingMs { get; set; }
     public string? WinDownload { get; set; }
     [JsonPropertyName("OSXDownload")]
     public string? OsxDownload { get; set; }

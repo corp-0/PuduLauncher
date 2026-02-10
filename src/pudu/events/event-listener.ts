@@ -11,17 +11,32 @@ export class EventListener {
   private handlers = new Map<PuduEventType, EventHandler[]>();
   private reconnectInterval = 3000;
   private reconnectTimer: number | null = null;
+  private shouldReconnect = true;
+  private connectionSession = 0;
 
   async connect(): Promise<void> {
-    if (this.ws?.readyState === WebSocket.OPEN) {
+    this.shouldReconnect = true;
+    const session = this.connectionSession;
+
+    if (this.ws?.readyState === WebSocket.OPEN || this.ws?.readyState === WebSocket.CONNECTING) {
       return;
     }
 
     try {
       const wsUrl = await getSidecarWsUrl();
-      this.ws = new WebSocket(`${wsUrl}/events`);
+      if (!this.shouldReconnect || session !== this.connectionSession) {
+        return;
+      }
 
-      this.ws.onopen = () => {
+      const ws = new WebSocket(`${wsUrl}/events`);
+      this.ws = ws;
+
+      ws.onopen = () => {
+        if (!this.shouldReconnect || session !== this.connectionSession) {
+          ws.close();
+          return;
+        }
+
         console.log('Connected to event stream');
         if (this.reconnectTimer) {
           clearTimeout(this.reconnectTimer);
@@ -29,7 +44,7 @@ export class EventListener {
         }
       };
 
-      this.ws.onmessage = (msg) => {
+      ws.onmessage = (msg) => {
         try {
           const event = JSON.parse(msg.data) as EventBase;
           const eventType = event.eventType as PuduEventType;
@@ -45,17 +60,25 @@ export class EventListener {
         }
       };
 
-      this.ws.onerror = (error) => {
+      ws.onerror = (error) => {
         console.error('WebSocket error:', error);
       };
 
-      this.ws.onclose = () => {
+      ws.onclose = () => {
+        if (this.ws === ws) {
+          this.ws = null;
+        }
+
         console.log('Disconnected from event stream');
-        this.scheduleReconnect();
+        if (this.shouldReconnect && session === this.connectionSession) {
+          this.scheduleReconnect();
+        }
       };
     } catch (error) {
       console.error('Failed to connect to event stream:', error);
-      this.scheduleReconnect();
+      if (this.shouldReconnect && session === this.connectionSession) {
+        this.scheduleReconnect();
+      }
     }
   }
 
@@ -68,6 +91,7 @@ export class EventListener {
     }
 
     this.handlers.get(eventType)!.push(handler as EventHandler);
+    void this.connect();
   }
 
   off<TEventType extends PuduEventType>(
@@ -76,6 +100,9 @@ export class EventListener {
   ): void {
     if (!handler) {
       this.handlers.delete(eventType);
+      if (!this.hasHandlers()) {
+        this.disconnect();
+      }
       return;
     }
 
@@ -84,17 +111,28 @@ export class EventListener {
       const index = handlers.indexOf(handler as EventHandler);
       if (index !== -1) {
         handlers.splice(index, 1);
+        if (handlers.length === 0) {
+          this.handlers.delete(eventType);
+        }
       }
+    }
+
+    if (!this.hasHandlers()) {
+      this.disconnect();
     }
   }
 
   disconnect(): void {
+    this.shouldReconnect = false;
+    this.connectionSession += 1;
+
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
 
     if (this.ws) {
+      this.ws.onclose = null;
       this.ws.close();
       this.ws = null;
     }
@@ -105,9 +143,27 @@ export class EventListener {
       return;
     }
 
+    const session = this.connectionSession;
+
     this.reconnectTimer = window.setTimeout(() => {
+      this.reconnectTimer = null;
+
+      if (!this.shouldReconnect || session !== this.connectionSession) {
+        return;
+      }
+
       console.log('Attempting to reconnect...');
       this.connect();
     }, this.reconnectInterval);
+  }
+
+  private hasHandlers(): boolean {
+    for (const handlers of this.handlers.values()) {
+      if (handlers.length > 0) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }

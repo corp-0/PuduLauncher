@@ -1,7 +1,10 @@
-import ThemeDemoLayout from "../layouts/ThemeDemoLayout";
+import ServersLayout from "../layouts/ServersLayout";
+import { ServersContextProvider } from "../../contextProviders/ServersContextProvider";
 
 export default function ServersPage() {
     return (
-        <ThemeDemoLayout />
+        <ServersContextProvider>
+            <ServersLayout />
+        </ServersContextProvider>
     )
 }
