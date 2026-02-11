@@ -4,7 +4,7 @@ namespace PuduLauncher.Models.Changelog;
 
 public class ChangelogEntry
 {
-    [JsonPropertyName("version")]
+    [JsonPropertyName("version_number")]
     public string Version { get; set; } = string.Empty;
 
     [JsonPropertyName("date_created")]
@@ -19,9 +19,9 @@ public class Change
     [JsonPropertyName("description")]
     public string Description { get; set; } = string.Empty;
 
-    [JsonPropertyName("author")]
+    [JsonPropertyName("author_username")]
     public string Author { get; set; } = string.Empty;
 
-    [JsonPropertyName("type")]
+    [JsonPropertyName("category")]
     public string Type { get; set; } = string.Empty;
 }

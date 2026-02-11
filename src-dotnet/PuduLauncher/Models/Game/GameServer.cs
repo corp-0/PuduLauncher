@@ -10,10 +10,12 @@ public class GameServer
     public bool Passworded { get; set; }
     public string? CurrentMap { get; set; }
     public string? GameMode { get; set; }
+    [JsonPropertyName("IngameTime")]
     public string? InGameTime { get; set; }
     public string? RoundTime { get; set; }
     public int PlayerCount { get; set; }
     public int PlayerCountMax { get; set; }
+    [JsonPropertyName("ServerIP")]
     public string? ServerIp { get; set; }
     public int ServerPort { get; set; }
     public int PingMs { get; set; }
