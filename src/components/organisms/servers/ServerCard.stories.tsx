@@ -1,7 +1,7 @@
-import type {Meta, StoryObj} from '@storybook/react-vite';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import ServerCard from './ServerCard';
-import {Box, GlobalStyles} from "@mui/joy";
+import { Box, GlobalStyles } from "@mui/joy";
 
 const meta = {
     component: ServerCard,
@@ -28,13 +28,13 @@ const meta = {
                     "html, body, #storybook-root": {
                         backgroundColor: "background.surface",
                     },
-                }}/>
+                }} />
                 <Box sx={{
                     bgcolor: "background.surface",
                     width: "100%",
                     minHeight: "100dvh",
                 }}>
-                    <Story/>
+                    <Story />
                 </Box>
             </>
         ),
@@ -45,7 +45,12 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {};
+export const DownloadRequired: Story = {
+    args: {
+        actionLabel: "Download",
+        actionState: "download",
+    },
+};
 
 export const Downloading: Story = {
     args: {
@@ -58,12 +63,6 @@ export const Downloading: Story = {
     },
 };
 
-export const DownloadRequired: Story = {
-    args: {
-        actionLabel: "Download",
-        actionState: "download",
-    },
-};
 
 export const Scanning: Story = {
     args: {
@@ -84,5 +83,19 @@ export const ScanningFailed: Story = {
             label: "Scan failed",
             value: 100,
         },
+    },
+};
+
+export const Join: Story = {
+    args: {
+        actionLabel: "Join",
+        actionState: "join",
+    },
+};
+
+export const Playing: Story = {
+    args: {
+        actionLabel: "Playing",
+        actionState: "playing",
     },
 };

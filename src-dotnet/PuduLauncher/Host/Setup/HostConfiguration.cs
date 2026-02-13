@@ -15,6 +15,7 @@ public static class HostConfiguration
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Information()
             .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+            .MinimumLevel.Override("System.Net.Http.HttpClient", LogEventLevel.Warning)
             .Enrich.FromLogContext()
             // Logs go to stderr only — Rust captures them and writes to the unified log file.
             // No timestamp: tauri-plugin-log adds its own. Format: [INF] message

@@ -20,7 +20,7 @@ public class ServerListService(
         {
             if (!eventPublisher.HasConnectedClients)
             {
-                logger.LogInformation("No clients connected, skipping server list fetch");
+                logger.LogDebug("No clients connected, skipping server list fetch");
                 await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
                 continue;
             }
@@ -29,7 +29,7 @@ public class ServerListService(
             {
                 var servers = await FetchServerListAsync(stoppingToken);
                 await eventPublisher.PublishAsync(new ServerListUpdatedEvent { Servers = servers }, stoppingToken);
-                logger.LogInformation("Published server list with {Count} servers", servers.Count);
+                logger.LogDebug("Published server list with {Count} servers", servers.Count);
             }
             catch (OperationCanceledException)
             {

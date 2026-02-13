@@ -10,7 +10,7 @@ public static class Api
     public static string LatestBlogPosts => $"{ChangelogBaseUrl}/posts/?format=json";
     
     private static string CdnBaseUrl => "https://unitystationfile.b-cdn.net";
-    private static string GoodFilesBaseUrl => $"{CdnBaseUrl}/GoodFiles";
+    public static string GoodFilesBaseUrl => $"{CdnBaseUrl}/GoodFiles";
     public static string AllowedGoodFilesUrl => $"{GoodFilesBaseUrl}/AllowGoodFiles.json";
 
     private static string RawGitHubFileBaseUrl => "https://raw.githubusercontent.com/unitystation/unitystation/develop";

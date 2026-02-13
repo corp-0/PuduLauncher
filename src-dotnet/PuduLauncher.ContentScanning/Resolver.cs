@@ -5,7 +5,7 @@ using Serilog;
 
 namespace PuduLauncher.ContentScanning;
 
-public sealed class Resolver : IResolver
+public sealed class Resolver : IResolver, IDisposable
 {
     private readonly DirectoryInfo _managedPath;
 

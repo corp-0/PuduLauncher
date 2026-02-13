@@ -30,7 +30,7 @@ public sealed class WebSocketEventPublisher : IEventPublisher
     public void AddClient(WebSocket webSocket)
     {
         _clients.TryAdd(webSocket, 0);
-        _logger.LogInformation("WebSocket client connected. Total clients: {Count}", _clients.Count);
+        _logger.LogDebug("WebSocket client connected. Total clients: {Count}", _clients.Count);
     }
 
     /// <summary>
@@ -39,7 +39,7 @@ public sealed class WebSocketEventPublisher : IEventPublisher
     public void RemoveClient(WebSocket webSocket)
     {
         _clients.TryRemove(webSocket, out _);
-        _logger.LogInformation("WebSocket client disconnected. Total clients: {Count}", _clients.Count);
+        _logger.LogDebug("WebSocket client disconnected. Total clients: {Count}", _clients.Count);
     }
 
     /// <inheritdoc/>

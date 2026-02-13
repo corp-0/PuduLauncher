@@ -14,12 +14,15 @@ try
     builder.Services.AddPuduInfrastructure();
     builder.Services.AddPuduControllers(); // Generated
 
-    // Register your services below:
     builder.Services.AddSingleton<IEnvironmentService, EnvironmentService>();
     builder.Services.AddSingleton<IPreferencesService, PreferencesService>();
     builder.Services.AddSingleton<IBlogService, BlogService>();
     builder.Services.AddSingleton<IChangelogService, ChangelogService>();
     builder.Services.AddSingleton<IPingService, PingService>();
+    builder.Services.AddSingleton<IInstallationService, InstallationService>();
+    builder.Services.AddSingleton<IScannerService, ScannerService>();
+    builder.Services.AddSingleton<IDownloadService, DownloadService>();
+    builder.Services.AddSingleton<IGameLaunchService, GameLaunchService>();
     builder.Services.AddHostedService<ServerListService>();
 
     // ── App ───────────────────────────────────────────
@@ -27,6 +30,9 @@ try
 
     app.MapPuduInfrastructure();
     app.MapPuduEndpoints(); // Generated
+
+    // Force initialization so stale installations are reconciled at startup.
+    app.Services.GetRequiredService<IInstallationService>();
 
     await app.StartAsSidecarAsync();
 }

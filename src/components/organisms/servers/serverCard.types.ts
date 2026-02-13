@@ -3,7 +3,7 @@ export interface ServerCardProgress {
     value: number;
 }
 
-export type ServerActionState = "download" | "downloading" | "scanning" | "scanningFailed" | "join";
+export type ServerActionState = "download" | "downloading" | "extracting" | "scanning" | "downloadFailed" | "scanningFailed" | "join" | "playing";
 
 export interface ServerCardProps {
     name: string;

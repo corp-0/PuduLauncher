@@ -29,6 +29,10 @@ function toKebabCase(name) {
   return name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
 }
 
+function toPascalCase(name) {
+  return name.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join('');
+}
+
 function escapeTsStringLiteral(value) {
   return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
@@ -92,7 +96,6 @@ function buildAndLoadManifest() {
       const manifest = JSON.parse(match[1]);
       return { manifest, file };
     } catch {
-      // Try the next candidate
     }
   }
 
@@ -287,8 +290,7 @@ function generateApiClient(controller, knownTypeNames) {
   }
   output += "import { getSidecarBaseUrl } from '../sidecar';\n\n";
 
-  const apiClassName =
-    controller.name.charAt(0).toUpperCase() + controller.name.slice(1) + "Api";
+  const apiClassName = toPascalCase(controller.name) + "Api";
 
   output += `export class ${apiClassName} {\n`;
   for (const cmd of commands) {
@@ -360,7 +362,6 @@ function generateApiClient(controller, knownTypeNames) {
 function generatePreferencesSchema(manifest) {
   const models = manifest.models ?? [];
 
-  // Build map: model name → model (for models with categoryLabel)
   const categoryModels = new Map();
   for (const model of models) {
     if (typeof model.categoryLabel === "string" && model.categoryLabel.length > 0) {
@@ -370,7 +371,6 @@ function generatePreferencesSchema(manifest) {
 
   if (categoryModels.size === 0) return null;
 
-  // Find the Preferences model to determine category keys (property names)
   const preferencesModel = models.find((m) => m.name === "Preferences");
   if (!preferencesModel) return null;
 
@@ -395,7 +395,6 @@ function generatePreferencesSchema(manifest) {
 
   if (categories.length === 0) return null;
 
-  // Collect unique component values for the union type
   const componentValues = new Set();
   for (const cat of categories) {
     for (const field of cat.fields) {

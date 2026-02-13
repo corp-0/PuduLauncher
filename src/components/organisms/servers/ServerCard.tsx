@@ -7,8 +7,8 @@ import {
 import ServerCardActionButton from "../../molecules/servers/ServerCardActionButton";
 import ServerCardDetails from "../../molecules/servers/ServerCardDetails";
 import ServerCardHeader from "../../molecules/servers/ServerCardHeader";
-import { resolveServerAction } from "../../molecules/servers/serverCardActions";
-import type { ServerCardProps } from "./serverCard.types";
+import {resolveServerAction} from "../../molecules/servers/serverCardActions";
+import type {ServerCardProps} from "./serverCard.types";
 
 export type {
     ServerActionState,
@@ -39,6 +39,7 @@ export default function ServerCard(props: ServerCardProps) {
         resolvedActionLabel,
         actionVisual,
         isBusyAction,
+        isDeterminate
     } = resolveServerAction(actionLabel, actionState);
 
     const shouldDisableAction = isActionDisabled || isBusyAction;
@@ -80,7 +81,7 @@ export default function ServerCard(props: ServerCardProps) {
                     </AspectRatio>
 
                     <Stack spacing={0.75} sx={{flex: 1, minWidth: 0}}>
-                        <ServerCardHeader name={name} mode={mode} />
+                        <ServerCardHeader name={name} mode={mode}/>
                         <ServerCardDetails
                             map={map}
                             build={build}
@@ -104,13 +105,11 @@ export default function ServerCard(props: ServerCardProps) {
             </Stack>
 
             <LinearProgress
-                determinate
+                determinate={isDeterminate}
                 variant="soft"
                 value={progressPercent}
                 color={actionVisual.color}
                 sx={{
-                    // "--LinearProgress-radius": "0px",
-                    // "--LinearProgress-thickness": "5px",
                     opacity: hasProgress ? 1 : 0,
                     transition: "opacity 0.2s ease",
                 }}

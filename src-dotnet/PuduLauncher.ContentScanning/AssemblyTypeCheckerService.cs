@@ -40,7 +40,7 @@ public sealed class AssemblyTypeCheckerService
         await using FileStream assembly = diskPath.OpenRead();
         Stopwatch fullStopwatch = Stopwatch.StartNew();
 
-        Resolver resolver = AssemblyTypeCheckerHelpers.CreateResolver(managedPath);
+        using Resolver resolver = AssemblyTypeCheckerHelpers.CreateResolver(managedPath);
         using PEReader peReader = new(assembly, PEStreamOptions.LeaveOpen);
         MetadataReader reader = peReader.GetMetadataReader();
 
@@ -166,7 +166,6 @@ public sealed class AssemblyTypeCheckerService
             LogMessage = $"Checked assembly in {fullStopwatch.ElapsedMilliseconds}ms"
         });
 
-        resolver.Dispose();
         return errors.IsEmpty;
     }
 }
