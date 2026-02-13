@@ -6,12 +6,14 @@ using PuduLauncher.Services.Interfaces;
 namespace PuduLauncher.Controllers;
 
 [PuduController("downloads")]
-public class DownloadController(IDownloadService downloadService)
+public class DownloadController(
+    IDownloadService downloadService,
+    IInstallationWorkflowService installationWorkflowService)
 {
     [PuduCommand]
     public async Task StartDownload(GameServer server)
     {
-        await downloadService.StartDownloadAsync(server);
+        await installationWorkflowService.StartServerDownloadAsync(server);
     }
 
     [PuduCommand]

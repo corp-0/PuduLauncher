@@ -8,7 +8,6 @@ pub struct SidecarManager {
 }
 
 impl SidecarManager {
-    /// Creates a new SidecarManager instance.
     pub fn new() -> Self {
         Self {
             process: Mutex::new(None),

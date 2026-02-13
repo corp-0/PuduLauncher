@@ -22,6 +22,7 @@ try
     builder.Services.AddSingleton<IInstallationService, InstallationService>();
     builder.Services.AddSingleton<IScannerService, ScannerService>();
     builder.Services.AddSingleton<IDownloadService, DownloadService>();
+    builder.Services.AddSingleton<IInstallationWorkflowService, InstallationWorkflowService>();
     builder.Services.AddSingleton<IGameLaunchService, GameLaunchService>();
     builder.Services.AddHostedService<ServerListService>();
 

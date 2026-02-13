@@ -5,6 +5,7 @@ using PuduLauncher.Services.Interfaces;
 
 namespace PuduLauncher.Services;
 
+
 public class EnvironmentService: IEnvironmentService
 {
     private readonly CurrentEnvironment _currentEnvironment;
@@ -50,6 +51,17 @@ public class EnvironmentService: IEnvironmentService
     public string GetUserdataDirectory()
     {
         return _userdataDirectory;
+    }
+
+    public string GetCanonicalEnvironment()
+    {
+        return _currentEnvironment switch
+        {
+            CurrentEnvironment.WindowsStandalone => "StandaloneWindows64",
+            CurrentEnvironment.LinuxStandalone or CurrentEnvironment.LinuxFlatpak => "StandaloneLinux64",
+            CurrentEnvironment.MacOsStandalone => "StandaloneOSX",
+            _ => throw new ArgumentOutOfRangeException()
+        };
     }
     
     public bool ShouldDisableUpdateCheck()

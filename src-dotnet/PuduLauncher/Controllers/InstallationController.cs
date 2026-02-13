@@ -5,7 +5,9 @@ using PuduLauncher.Services.Interfaces;
 namespace PuduLauncher.Controllers;
 
 [PuduController("installations")]
-public class InstallationController(IInstallationService installationService)
+public class InstallationController(
+    IInstallationService installationService,
+    IInstallationWorkflowService installationWorkflowService)
 {
     [PuduCommand]
     public List<Installation> GetInstallations()
@@ -35,5 +37,11 @@ public class InstallationController(IInstallationService installationService)
     public bool IsValidInstallationBasePath(string path)
     {
         return installationService.IsValidInstallationBasePath(path);
+    }
+
+    [PuduCommand]
+    public async Task DownloadVersion(int buildVersion)
+    {
+        await installationWorkflowService.StartRegistryDownloadAsync(buildVersion);
     }
 }

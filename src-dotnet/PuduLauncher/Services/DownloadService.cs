@@ -6,7 +6,6 @@ using PuduLauncher.Abstractions.Interfaces;
 using PuduLauncher.Constants;
 using PuduLauncher.Models.Enums;
 using PuduLauncher.Models.Events;
-using PuduLauncher.Models.Game;
 using PuduLauncher.Models.Installations;
 using PuduLauncher.Services.Interfaces;
 
@@ -14,9 +13,6 @@ namespace PuduLauncher.Services;
 
 public class DownloadService(
     IHttpClientFactory httpClientFactory,
-    IInstallationService installationService,
-    IPreferencesService preferencesService,
-    IEnvironmentService environmentService,
     IEventPublisher eventPublisher,
     IScannerService scannerService,
     ILogger<DownloadService> logger) : IDownloadService
@@ -24,21 +20,39 @@ public class DownloadService(
     private readonly ConcurrentDictionary<string, Download> _downloads = new();
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _cancellationTokens = new();
 
-    public async Task StartDownloadAsync(GameServer server)
+    public async Task StartDownloadAsync(
+        DownloadStartRequest request,
+        Func<DownloadedInstallation, CancellationToken, Task> onInstalledAsync)
     {
-        string? downloadUrl = ResolveDownloadUrl(server);
-        if (string.IsNullOrWhiteSpace(downloadUrl))
-        {
-            throw new InvalidOperationException(
-                $"No download URL available for platform {environmentService.GetCurrentEnvironment()} " +
-                $"on server {server.ServerName}");
-        }
-        logger.LogInformation("Starting download for {ForkName} v{BuildVersion} from {Url}",
-            server.ForkName, server.BuildVersion, downloadUrl);
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(onInstalledAsync);
 
-        string forkName = server.ForkName ?? throw new InvalidOperationException("Server has no fork name");
-        int buildVersion = server.BuildVersion;
-        string goodFileVersion = server.GoodFileVersion ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(request.ForkName))
+        {
+            throw new InvalidOperationException("Download request fork name is required");
+        }
+
+        if (request.BuildVersion <= 0)
+        {
+            throw new InvalidOperationException("Download request build version must be greater than 0");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.DownloadUrl))
+        {
+            throw new InvalidOperationException("Download request URL is required");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.InstallPath))
+        {
+            throw new InvalidOperationException("Download request install path is required");
+        }
+
+        logger.LogInformation("Starting download for {ForkName} v{BuildVersion} from {Url}",
+            request.ForkName, request.BuildVersion, request.DownloadUrl);
+
+        string forkName = request.ForkName;
+        int buildVersion = request.BuildVersion;
+        string goodFileVersion = request.GoodFileVersion;
         string key = DownloadKey(forkName, buildVersion);
 
         if (_downloads.TryGetValue(key, out Download? existing) &&
@@ -54,28 +68,17 @@ public class DownloadService(
             if (!isValid)
             {
                 throw new InvalidOperationException(
-                    $"Invalid GoodFileVersion: {goodFileVersion} for server {server.ServerName}");
+                    $"Invalid GoodFileVersion: {goodFileVersion} for {forkName} v{buildVersion}");
             }
         }
-
-        Installation? existingInstallation = installationService.GetInstallation(forkName, buildVersion);
-        if (existingInstallation != null)
-        {
-            throw new InvalidOperationException(
-                $"Installation already exists: {forkName} v{buildVersion}");
-        }
-
-        string basePath = preferencesService.GetPreferences().Installations.InstallationPath;
-        string sanitizedFork = SanitizePath(forkName);
-        string installPath = Path.Combine(basePath, sanitizedFork, buildVersion.ToString());
 
         var download = new Download
         {
             ForkName = forkName,
             BuildVersion = buildVersion,
-            DownloadUrl = downloadUrl,
+            DownloadUrl = request.DownloadUrl,
             GoodFileVersion = goodFileVersion,
-            InstallPath = installPath,
+            InstallPath = request.InstallPath,
             State = DownloadState.InProgress
         };
 
@@ -85,7 +88,7 @@ public class DownloadService(
 
         await PublishStateChangedAsync(download);
 
-        _ = Task.Run(() => ExecuteDownloadPipelineAsync(download, cts.Token), cts.Token);
+        _ = Task.Run(() => ExecuteDownloadPipelineAsync(download, onInstalledAsync, cts.Token), cts.Token);
     }
 
     public Task CancelDownloadAsync(string forkName, int buildVersion)
@@ -120,7 +123,10 @@ public class DownloadService(
             .ToList();
     }
 
-    private async Task ExecuteDownloadPipelineAsync(Download download, CancellationToken ct)
+    private async Task ExecuteDownloadPipelineAsync(
+        Download download,
+        Func<DownloadedInstallation, CancellationToken, Task> onInstalledAsync,
+        CancellationToken ct)
     {
         string key = DownloadKey(download.ForkName, download.BuildVersion);
         string tempZipPath = download.InstallPath + ".zip";
@@ -150,16 +156,13 @@ public class DownloadService(
                 return;
             }
 
-            var installation = new Installation
+            var downloadedInstallation = new DownloadedInstallation
             {
-                Id = Guid.NewGuid(),
                 ForkName = download.ForkName,
                 BuildVersion = download.BuildVersion,
-                InstallationPath = download.InstallPath,
-                LastPlayedDate = DateTime.UtcNow
+                InstallationPath = download.InstallPath
             };
-
-            await installationService.AddInstallationAsync(installation);
+            await onInstalledAsync(downloadedInstallation, ct);
 
             download.State = DownloadState.Installed;
             await PublishStateChangedAsync(download);
@@ -285,23 +288,6 @@ public class DownloadService(
             logger.LogError(ex, "Failed to validate GoodFileVersion: {Version}", goodFileVersion);
             return false;
         }
-    }
-
-    private string? ResolveDownloadUrl(GameServer server)
-    {
-        return environmentService.GetCurrentEnvironment() switch
-        {
-            CurrentEnvironment.WindowsStandalone => server.WinDownload,
-            CurrentEnvironment.MacOsStandalone => server.OsxDownload,
-            CurrentEnvironment.LinuxStandalone or CurrentEnvironment.LinuxFlatpak => server.LinuxDownload,
-            _ => null
-        };
-    }
-
-    private static string SanitizePath(string input)
-    {
-        char[] invalid = Path.GetInvalidFileNameChars();
-        return new string(input.Where(c => !invalid.Contains(c)).ToArray());
     }
 
     private static string DownloadKey(string forkName, int buildVersion)

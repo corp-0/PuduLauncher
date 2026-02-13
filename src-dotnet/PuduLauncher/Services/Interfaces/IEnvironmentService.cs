@@ -12,6 +12,12 @@ public interface IEnvironmentService
     /// Gets the current environment the launcher is running on.
     /// </summary>
     CurrentEnvironment GetCurrentEnvironment();
+    
+    /// <summary>
+    /// Gets the canonical string that represents an environment, based on Unity executables
+    /// </summary>
+    /// <returns></returns>
+    string GetCanonicalEnvironment();
 
     /// <summary>
     /// Gets the userdata directory for the current environment.
@@ -27,4 +33,5 @@ public interface IEnvironmentService
     /// Builds ProcessStartInfo for starting the game executable with arguments.
     /// </summary>
     ProcessStartInfo? GetGameProcessStartInfo(string executable, string arguments);
+
 }
