@@ -7,6 +7,7 @@ import WorkInProgressLayout from "./components/layouts/workInProgressLayout/Work
 import {useThemeContext} from "./contextProviders/ThemeProvider";
 import {themeRegistry} from "./themes";
 import ComponentsDemoPage from "./components/pages/ComponentsDemoPage.tsx";
+import { ServersContextProvider } from "./contextProviders/ServersContextProvider";
 
 function App() {
     const {themeId} = useThemeContext();
@@ -15,13 +16,15 @@ function App() {
         <CssVarsProvider defaultMode="dark" modeStorageKey="pudu-color-mode" theme={themeRegistry[themeId]}>
             <CssBaseline/>
             <BrowserRouter>
-                <Routes>
-                    <Route element={<SideBarLayout/>}>
-                        <Route path="/" element={<ServersPage/>}/>
-                        <Route path="/components" element={<ComponentsDemoPage/>}/>
-                        <Route path="*" element={<WorkInProgressLayout/>}/>
-                    </Route>
-                </Routes>
+                <ServersContextProvider>
+                    <Routes>
+                        <Route element={<SideBarLayout/>}>
+                            <Route path="/" element={<ServersPage/>}/>
+                            <Route path="/components" element={<ComponentsDemoPage/>}/>
+                            <Route path="*" element={<WorkInProgressLayout/>}/>
+                        </Route>
+                    </Routes>
+                </ServersContextProvider>
             </BrowserRouter>
         </CssVarsProvider>
     );

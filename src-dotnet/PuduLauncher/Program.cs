@@ -19,12 +19,12 @@ try
     builder.Services.AddSingleton<IBlogService, BlogService>();
     builder.Services.AddSingleton<IChangelogService, ChangelogService>();
     builder.Services.AddSingleton<IPingService, PingService>();
+    builder.Services.AddSingleton<IServerListService, ServerListService>();
     builder.Services.AddSingleton<IInstallationService, InstallationService>();
     builder.Services.AddSingleton<IScannerService, ScannerService>();
     builder.Services.AddSingleton<IDownloadService, DownloadService>();
     builder.Services.AddSingleton<IInstallationWorkflowService, InstallationWorkflowService>();
     builder.Services.AddSingleton<IGameLaunchService, GameLaunchService>();
-    builder.Services.AddHostedService<ServerListService>();
 
     // ── App ───────────────────────────────────────────
     WebApplication app = builder.Build();

@@ -1,4 +1,5 @@
 import { createContext, type PropsWithChildren, useContext, useMemo } from "react";
+import { useMatch } from "react-router";
 import {
     getServerId,
     resolveActionHandler,
@@ -27,6 +28,7 @@ const ServersContext = createContext<ServersContextValue | undefined>(undefined)
 
 export function ServersContextProvider(props: PropsWithChildren) {
     const { children } = props;
+    const isServersPageActive = useMatch({ path: "/", end: true }) !== null;
 
     const {
         servers,
@@ -37,7 +39,7 @@ export function ServersContextProvider(props: PropsWithChildren) {
         lastUpdatedLabel,
         startDownload,
         launchGame,
-    } = useServerState();
+    } = useServerState({ isServersPageActive });
 
     const cards = useMemo<ServerCardViewModel[]>(() => {
         return sortedServers.map((server) => {

@@ -22,7 +22,7 @@ export default function ServersLayout() {
                         <Stack direction="row" spacing={1} alignItems="center">
                             <CircularProgress size="sm" />
                             <Typography level="body-sm">
-                                Listening for server list updates from the backend...
+                                Refreshing server list...
                             </Typography>
                         </Stack>
                     </Alert>

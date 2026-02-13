@@ -6,9 +6,8 @@ import type {
     GameStateChangedEvent,
     Installation,
     InstallationsChangedEvent,
-    ServerListUpdatedEvent,
 } from "../pudu/generated";
-import { DownloadsApi, GameLaunchApi, InstallationsApi } from "../pudu/generated";
+import { DownloadsApi, GameLaunchApi, InstallationsApi, PreferencesApi, ServersApi } from "../pudu/generated";
 import { EventListener } from "../pudu/events/event-listener";
 import { downloadKey } from "./servers.resolvers";
 
@@ -31,7 +30,14 @@ export interface DownloadSnapshot {
     errorMessage?: string | null;
 }
 
-export function useServerState() {
+interface UseServerStateOptions {
+    isServersPageActive: boolean;
+}
+
+const DEFAULT_SERVER_POLL_INTERVAL_MS = 10_000;
+
+export function useServerState(options: UseServerStateOptions) {
+    const { isServersPageActive } = options;
     const [servers, setServers] = useState<GameServer[] | null>(null);
     const [installations, setInstallations] = useState<Installation[]>([]);
     const [downloads, setDownloads] = useState<Map<string, DownloadSnapshot>>(new Map());
@@ -66,14 +72,73 @@ export function useServerState() {
         });
     }, []);
 
-    // Subscribe to all events
+    useEffect(() => {
+        if (!isServersPageActive) {
+            return;
+        }
+
+        let isDisposed = false;
+        let timeoutId: ReturnType<typeof setTimeout> | null = null;
+        let pollIntervalMs = DEFAULT_SERVER_POLL_INTERVAL_MS;
+        const serversApi = new ServersApi();
+        const preferencesApi = new PreferencesApi();
+
+        const fetchServers = async () => {
+            const result = await serversApi.getServers();
+            if (isDisposed) {
+                return;
+            }
+
+            if (!result.success) {
+                setServers((prev) => prev ?? []);
+                return;
+            }
+
+            setServers(result.data ?? []);
+            setLastUpdatedAt(new Date());
+        };
+
+        const fetchPollInterval = async () => {
+            const result = await preferencesApi.getPreferences();
+            if (isDisposed || !result.success || !result.data) {
+                return;
+            }
+
+            const intervalSeconds = result.data.servers.serverListFetchIntervalSeconds;
+            if (!Number.isFinite(intervalSeconds)) {
+                return;
+            }
+
+            pollIntervalMs = Math.max(1, Math.floor(intervalSeconds)) * 1000;
+        };
+
+        const poll = async () => {
+            await fetchServers();
+            if (isDisposed) {
+                return;
+            }
+
+            timeoutId = setTimeout(() => {
+                void poll();
+            }, pollIntervalMs);
+        };
+
+        void (async () => {
+            await fetchPollInterval();
+            await poll();
+        })();
+
+        return () => {
+            isDisposed = true;
+            if (timeoutId !== null) {
+                clearTimeout(timeoutId);
+            }
+        };
+    }, [isServersPageActive]);
+
+    // Subscribe to real-time events
     useEffect(() => {
         const eventListener = new EventListener();
-
-        eventListener.on("servers:updated", (event: ServerListUpdatedEvent) => {
-            setServers(event.servers);
-            setLastUpdatedAt(new Date(event.timestamp));
-        });
 
         eventListener.on("installations:changed", (event: InstallationsChangedEvent) => {
             setInstallations(event.installations);
@@ -142,15 +207,62 @@ export function useServerState() {
     }, [servers]);
 
     const startDownload = useCallback((server: GameServer) => {
-        const key = downloadKey(server.forkName ?? "", server.buildVersion);
+        const forkName = server.forkName ?? "";
+        const buildVersion = server.buildVersion;
+        const key = downloadKey(forkName, buildVersion);
+
         setDownloads((prev) => {
             const next = new Map(prev);
-            next.delete(key);
+            next.set(key, {
+                forkName,
+                buildVersion,
+                state: DownloadState.InProgress,
+                progress: 0,
+                errorMessage: null,
+            });
             return next;
         });
 
         const api = new DownloadsApi();
-        api.startDownload(server);
+        void api.startDownload(server).then((result) => {
+            if (result.success) {
+                return;
+            }
+
+            setDownloads((prev) => {
+                const next = new Map(prev);
+                const existing = next.get(key);
+                if (!existing) {
+                    return next;
+                }
+
+                next.set(key, {
+                    ...existing,
+                    state: DownloadState.Failed,
+                    errorMessage: result.error ?? "Failed to start download.",
+                });
+                return next;
+            });
+        }).catch((error: unknown) => {
+            const errorMessage = error instanceof Error
+                ? error.message
+                : "Failed to start download.";
+
+            setDownloads((prev) => {
+                const next = new Map(prev);
+                const existing = next.get(key);
+                if (!existing) {
+                    return next;
+                }
+
+                next.set(key, {
+                    ...existing,
+                    state: DownloadState.Failed,
+                    errorMessage,
+                });
+                return next;
+            });
+        });
     }, []);
 
     const launchGame = useCallback((server: GameServer) => {
@@ -170,7 +282,7 @@ export function useServerState() {
 
     const lastUpdatedLabel = useMemo(() => {
         if (lastUpdatedAt === null) {
-            return "Waiting for the first server list update...";
+            return "Waiting for the first server list refresh...";
         }
 
         return `Last updated at ${lastUpdatedAt.toLocaleTimeString()}`;

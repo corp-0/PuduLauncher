@@ -20,16 +20,10 @@ public class GameLaunchService(
         var installation = installationService.GetInstallationById(installationId)
             ?? throw new InvalidOperationException($"Installation not found: {installationId}");
 
-        string gameKey = $"{installation.ForkName}:{installation.BuildVersion}";
+        string gameKey = $"{installation.ForkName}:{installation.BuildVersion}:{serverIp}:{serverPort}";
 
         try
         {
-            if (_runningGames.ContainsKey(gameKey))
-            {
-                logger.LogWarning("Game already running: {GameKey}", gameKey);
-                return;
-            }
-
             string executable = FindExecutable(installation.InstallationPath)
                 ?? throw new InvalidOperationException(
                     $"Could not find executable in: {installation.InstallationPath}");
