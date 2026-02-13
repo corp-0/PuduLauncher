@@ -16,6 +16,6 @@ public static class Api
     private static string RawGitHubFileBaseUrl => "https://raw.githubusercontent.com/unitystation/unitystation/develop";
     public static string CodeScanListUrl => $"{RawGitHubFileBaseUrl}/CodeScanList.json";
     private static string TtsFiles => $"{CdnBaseUrl}/STTBundleTTS/TTS";
-    
+
     public static string TtsVersionFile => $"{TtsFiles}/version.txt";
 }

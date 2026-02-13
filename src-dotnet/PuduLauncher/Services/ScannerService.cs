@@ -11,6 +11,7 @@ namespace PuduLauncher.Services;
 public class ScannerService(
     IHttpClientFactory httpClientFactory,
     IEnvironmentService environmentService,
+    IErrorDisplayServer errorDisplayServer,
     ILogger<ScannerService> logger) : IScannerService
 {
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _goodFilesLocks =
@@ -105,6 +106,12 @@ public class ScannerService(
         {
             logger.LogError(ex, "Failed to download good files for version {Version}, all DLLs will be scanned",
                 goodFileVersion);
+            _ = errorDisplayServer.ShowExceptionAsync(
+                ex,
+                source: "scanner-service.download-good-files",
+                userMessage: "Could not download trusted good files. A full scan will be used instead.",
+                code: "GOOD_FILES_DOWNLOAD_FAILED",
+                isTransient: true);
             return [];
         }
     }

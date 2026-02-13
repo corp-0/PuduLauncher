@@ -18,6 +18,17 @@ internal sealed class TestEnvironmentService(
         return userdataDirectory;
     }
 
+    public string GetCanonicalEnvironment()
+    {
+        return currentEnvironment switch
+        {
+            CurrentEnvironment.WindowsStandalone => "StandaloneWindows64",
+            CurrentEnvironment.LinuxStandalone or CurrentEnvironment.LinuxFlatpak => "StandaloneLinux64",
+            CurrentEnvironment.MacOsStandalone => "StandaloneOSX",
+            _ => throw new ArgumentOutOfRangeException(nameof(currentEnvironment), currentEnvironment, null),
+        };
+    }
+
     public bool ShouldDisableUpdateCheck()
     {
         return currentEnvironment == CurrentEnvironment.LinuxFlatpak;

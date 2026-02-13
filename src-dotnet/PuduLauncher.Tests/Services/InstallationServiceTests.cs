@@ -51,6 +51,7 @@ public class InstallationServiceTests
                 new FakePreferencesService(installationBasePath),
                 new TestEnvironmentService(userdataDirectory),
                 new NoOpEventPublisher(),
+                new NoOpErrorDisplayServer(),
                 NullLogger<InstallationService>.Instance);
 
             List<Installation> currentInstallations = service.GetInstallations();

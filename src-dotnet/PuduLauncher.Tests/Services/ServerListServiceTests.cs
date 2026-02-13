@@ -93,7 +93,7 @@ public class ServerListServiceTests
         var service = new ServerListService(
             new SingleHttpClientFactory(client),
             preferencesService,
-            new NoOpEventPublisher(),
+            new NoOpErrorDisplayServer(),
             pingService,
             NullLogger<ServerListService>.Instance);
 
@@ -128,7 +128,7 @@ public class ServerListServiceTests
         var service = new ServerListService(
             new SingleHttpClientFactory(client),
             preferencesService,
-            new NoOpEventPublisher(),
+            new NoOpErrorDisplayServer(),
             pingService,
             NullLogger<ServerListService>.Instance);
 

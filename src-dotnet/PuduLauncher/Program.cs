@@ -25,6 +25,7 @@ try
     builder.Services.AddSingleton<IDownloadService, DownloadService>();
     builder.Services.AddSingleton<IInstallationWorkflowService, InstallationWorkflowService>();
     builder.Services.AddSingleton<IGameLaunchService, GameLaunchService>();
+    builder.Services.AddSingleton<IErrorDisplayServer, ErrorDisplayServer>();
 
     // ── App ───────────────────────────────────────────
     WebApplication app = builder.Build();

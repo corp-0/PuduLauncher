@@ -8,6 +8,7 @@ namespace PuduLauncher.Services;
 public class ServerListService(
     IHttpClientFactory httpClientFactory,
     IPreferencesService preferences,
+    IErrorDisplayServer errorDisplayServer,
     IPingService pingService,
     ILogger<ServerListService> logger) : IServerListService
 {
@@ -33,6 +34,9 @@ public class ServerListService(
             return;
         }
 
+        var pingFailures = new List<string>();
+        var failureLock = new object();
+
         Task[] pingTasks = servers.Select(async server =>
         {
             if (string.IsNullOrWhiteSpace(server.ServerIp))
@@ -49,11 +53,26 @@ public class ServerListService(
             catch (Exception ex)
             {
                 logger.LogError(ex, "Ping failed for server {ServerName} ({ServerIp}:{ServerPort})", server.ServerName, server.ServerIp, server.ServerPort);
+                lock (failureLock)
+                {
+                    pingFailures.Add($"{server.ServerName} ({server.ServerIp}:{server.ServerPort}) -> {ex.Message}");
+                }
                 server.PingMs = 0;
             }
         }).ToArray();
 
         await Task.WhenAll(pingTasks);
+
+        if (pingFailures.Count > 0)
+        {
+            string details = string.Join(Environment.NewLine, pingFailures.Take(10));
+            await errorDisplayServer.ShowErrorAsync(
+                source: "server-list-service.populate-server-pings",
+                userMessage: "Some servers could not be pinged. Ping values may be stale.",
+                code: "SERVER_PING_PARTIAL_FAILURE",
+                technicalDetails: details,
+                isTransient: true);
+        }
     }
 
     private static int ParsePingMs(string pingResult)

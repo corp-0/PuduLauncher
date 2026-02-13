@@ -10,6 +10,7 @@ import type {
 import { DownloadsApi, GameLaunchApi, InstallationsApi, PreferencesApi, ServersApi } from "../pudu/generated";
 import { EventListener } from "../pudu/events/event-listener";
 import { downloadKey } from "./servers.resolvers";
+import { useErrorContext } from "./ErrorContextProvider";
 
 // Mirrors C# DownloadState enum
 export const DownloadState = {
@@ -38,6 +39,7 @@ const DEFAULT_SERVER_POLL_INTERVAL_MS = 10_000;
 
 export function useServerState(options: UseServerStateOptions) {
     const { isServersPageActive } = options;
+    const { showError } = useErrorContext();
     const [servers, setServers] = useState<GameServer[] | null>(null);
     const [installations, setInstallations] = useState<Installation[]>([]);
     const [downloads, setDownloads] = useState<Map<string, DownloadSnapshot>>(new Map());
@@ -52,7 +54,23 @@ export function useServerState(options: UseServerStateOptions) {
         installationsApi.getInstallations().then((result) => {
             if (result.success && result.data) {
                 setInstallations(result.data);
+                return;
             }
+
+            showError({
+                source: "frontend.installations.get-installations",
+                userMessage: "Failed to load local installations.",
+                code: "INSTALLATIONS_FETCH_FAILED",
+                technicalDetails: result.error ?? "Unknown backend error.",
+            });
+        }).catch((error: unknown) => {
+            const technicalDetails = error instanceof Error ? error.toString() : String(error);
+            showError({
+                source: "frontend.installations.get-installations",
+                userMessage: "Failed to load local installations.",
+                code: "INSTALLATIONS_FETCH_EXCEPTION",
+                technicalDetails,
+            });
         });
 
         downloadsApi.getActiveDownloads().then((result) => {
@@ -68,9 +86,25 @@ export function useServerState(options: UseServerStateOptions) {
                     });
                 }
                 setDownloads(map);
+                return;
             }
+
+            showError({
+                source: "frontend.downloads.get-active-downloads",
+                userMessage: "Failed to load active downloads.",
+                code: "DOWNLOADS_FETCH_FAILED",
+                technicalDetails: result.error ?? "Unknown backend error.",
+            });
+        }).catch((error: unknown) => {
+            const technicalDetails = error instanceof Error ? error.toString() : String(error);
+            showError({
+                source: "frontend.downloads.get-active-downloads",
+                userMessage: "Failed to load active downloads.",
+                code: "DOWNLOADS_FETCH_EXCEPTION",
+                technicalDetails,
+            });
         });
-    }, []);
+    }, [showError]);
 
     useEffect(() => {
         if (!isServersPageActive) {
@@ -91,6 +125,13 @@ export function useServerState(options: UseServerStateOptions) {
 
             if (!result.success) {
                 setServers((prev) => prev ?? []);
+                showError({
+                    source: "frontend.servers.get-servers",
+                    userMessage: "Failed to refresh server list.",
+                    code: "SERVERS_FETCH_FAILED",
+                    technicalDetails: result.error ?? "Unknown backend error.",
+                    dedupe: false,
+                });
                 return;
             }
 
@@ -101,6 +142,14 @@ export function useServerState(options: UseServerStateOptions) {
         const fetchPollInterval = async () => {
             const result = await preferencesApi.getPreferences();
             if (isDisposed || !result.success || !result.data) {
+                if (!isDisposed && !result.success) {
+                    showError({
+                        source: "frontend.preferences.get-preferences",
+                        userMessage: "Failed to refresh preferences.",
+                        code: "PREFERENCES_FETCH_FAILED",
+                        technicalDetails: result.error ?? "Unknown backend error.",
+                    });
+                }
                 return;
             }
 
@@ -134,7 +183,7 @@ export function useServerState(options: UseServerStateOptions) {
                 clearTimeout(timeoutId);
             }
         };
-    }, [isServersPageActive]);
+    }, [isServersPageActive, showError]);
 
     // Subscribe to real-time events
     useEffect(() => {
@@ -229,6 +278,8 @@ export function useServerState(options: UseServerStateOptions) {
                 return;
             }
 
+            const errorMessage = result.error ?? "Failed to start download.";
+
             setDownloads((prev) => {
                 const next = new Map(prev);
                 const existing = next.get(key);
@@ -239,9 +290,17 @@ export function useServerState(options: UseServerStateOptions) {
                 next.set(key, {
                     ...existing,
                     state: DownloadState.Failed,
-                    errorMessage: result.error ?? "Failed to start download.",
+                    errorMessage,
                 });
                 return next;
+            });
+
+            showError({
+                source: "frontend.downloads.start-download",
+                userMessage: "Failed to start download.",
+                code: "DOWNLOAD_START_FAILED",
+                technicalDetails: errorMessage,
+                dedupe: false,
             });
         }).catch((error: unknown) => {
             const errorMessage = error instanceof Error
@@ -262,8 +321,16 @@ export function useServerState(options: UseServerStateOptions) {
                 });
                 return next;
             });
+
+            showError({
+                source: "frontend.downloads.start-download",
+                userMessage: "Failed to start download.",
+                code: "DOWNLOAD_START_EXCEPTION",
+                technicalDetails: error instanceof Error ? error.toString() : String(error),
+                dedupe: false,
+            });
         });
-    }, []);
+    }, [showError]);
 
     const launchGame = useCallback((server: GameServer) => {
         const installation = installations.find(
@@ -273,12 +340,32 @@ export function useServerState(options: UseServerStateOptions) {
         if (!installation) return;
 
         const api = new GameLaunchApi();
-        api.launchGame({
+        void api.launchGame({
             installationId: installation.id,
             serverIp: server.serverIp,
             serverPort: server.serverPort,
+        }).then((result) => {
+            if (result.success) {
+                return;
+            }
+
+            showError({
+                source: "frontend.game-launch.launch-game",
+                userMessage: "Failed to launch game.",
+                code: "GAME_LAUNCH_FAILED",
+                technicalDetails: result.error ?? "Unknown backend error.",
+                dedupe: false,
+            });
+        }).catch((error: unknown) => {
+            showError({
+                source: "frontend.game-launch.launch-game",
+                userMessage: "Failed to launch game.",
+                code: "GAME_LAUNCH_EXCEPTION",
+                technicalDetails: error instanceof Error ? error.toString() : String(error),
+                dedupe: false,
+            });
         });
-    }, [installations]);
+    }, [installations, showError]);
 
     const lastUpdatedLabel = useMemo(() => {
         if (lastUpdatedAt === null) {

@@ -13,6 +13,7 @@ public class InstallationService : IInstallationService
     private readonly IPreferencesService _preferencesService;
     private readonly IEnvironmentService _environmentService;
     private readonly IEventPublisher _eventPublisher;
+    private readonly IErrorDisplayServer _errorDisplayServer;
     private readonly ILogger<InstallationService> _logger;
     private List<Installation> _installations;
 
@@ -20,11 +21,13 @@ public class InstallationService : IInstallationService
         IPreferencesService preferencesService,
         IEnvironmentService environmentService,
         IEventPublisher eventPublisher,
+        IErrorDisplayServer errorDisplayServer,
         ILogger<InstallationService> logger)
     {
         _preferencesService = preferencesService;
         _environmentService = environmentService;
         _eventPublisher = eventPublisher;
+        _errorDisplayServer = errorDisplayServer;
         _logger = logger;
 
         _installationsFilePath = Path.Combine(
@@ -232,6 +235,12 @@ public class InstallationService : IInstallationService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to read installations from {Path}", _installationsFilePath);
+            _ = _errorDisplayServer.ShowExceptionAsync(
+                ex,
+                source: "installation-service.read-installations",
+                userMessage: "Failed to read installations from disk. The installation list may be incomplete.",
+                code: "INSTALLATIONS_READ_FAILED",
+                isTransient: false);
             return [];
         }
     }
@@ -247,6 +256,12 @@ public class InstallationService : IInstallationService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to write installations to {Path}", _installationsFilePath);
+            _ = _errorDisplayServer.ShowExceptionAsync(
+                ex,
+                source: "installation-service.write-installations",
+                userMessage: "Failed to save installations to disk.",
+                code: "INSTALLATIONS_WRITE_FAILED",
+                isTransient: false);
         }
     }
 
@@ -268,6 +283,12 @@ public class InstallationService : IInstallationService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to delete directory: {Path}", path);
+            _ = _errorDisplayServer.ShowExceptionAsync(
+                ex,
+                source: "installation-service.delete-directory",
+                userMessage: "Failed to delete installation files from disk.",
+                code: "INSTALLATION_DELETE_FAILED",
+                isTransient: false);
         }
     }
 
