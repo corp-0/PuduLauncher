@@ -72,3 +72,4 @@ src/pudu/generated/
 !src/pudu/generated/.gitkeep
 *storybook.log
 storybook-static
+src-tauri/imgui.ini
