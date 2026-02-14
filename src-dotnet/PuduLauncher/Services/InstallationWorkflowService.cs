@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using PuduLauncher.Constants;
 using PuduLauncher.Extensions;
 using PuduLauncher.Models.Enums;
@@ -13,9 +14,11 @@ public class InstallationWorkflowService(
     IInstallationService installationService,
     IPreferencesService preferencesService,
     IEnvironmentService environmentService,
+    IHttpClientFactory httpClientFactory,
     ILogger<InstallationWorkflowService> logger) : IInstallationWorkflowService
 {
-    private const string RegistryForkName = "UnitystationDevelop";
+    private const string REGISTRY_FORK_NAME = "UnityStationDevelop";
+    
 
     public async Task StartServerDownloadAsync(GameServer server)
     {
@@ -47,7 +50,15 @@ public class InstallationWorkflowService(
 
         string buildVersionText = buildVersion.ToString(CultureInfo.InvariantCulture);
         string downloadUrl = BuildRegistryDownloadUrl(buildVersionText);
-        await StartDownloadAsync(RegistryForkName, buildVersion, downloadUrl, string.Empty);
+        await StartDownloadAsync(REGISTRY_FORK_NAME, buildVersion, downloadUrl, string.Empty);
+    }
+
+    public async Task<List<RegistryBuild>> ListRegistryBuildsAsync()
+    {
+        logger.LogInformation("Fetching list of builds from Unitystation's registry");
+        HttpClient client = httpClientFactory.CreateClient();
+        string data = await client.GetStringAsync(Api.BuildsRegistry);
+        return ParseRegistryBuilds(data);
     }
 
     private async Task StartDownloadAsync(
@@ -103,7 +114,7 @@ public class InstallationWorkflowService(
             ForkName = downloadedInstallation.ForkName,
             BuildVersion = downloadedInstallation.BuildVersion,
             InstallationPath = downloadedInstallation.InstallationPath,
-            LastPlayedDate = DateTime.UtcNow
+            LastPlayedDate = DateTime.MinValue
         };
 
         await installationService.AddInstallationAsync(installation);
@@ -140,12 +151,42 @@ public class InstallationWorkflowService(
 
     private string BuildRegistryDownloadUrl(string buildVersion)
     {
-        UriBuilder builder = new(Api.CdnBaseUrl);
-        builder.AppendPathSegments(RegistryForkName)
+        UriBuilder builder = new(Api.CdnBaseUrl) { Port = -1 };
+        builder.AppendPathSegments(REGISTRY_FORK_NAME)
             .AppendPathSegments(environmentService.GetCanonicalEnvironment())
             .AppendPathSegments(buildVersion + ".zip");
 
         return builder.ToString();
+    }
+    
+    private static List<RegistryBuild> ParseRegistryBuilds(string json)
+    {
+        using JsonDocument doc = JsonDocument.Parse(json);
+
+        JsonElement items = doc.RootElement.ValueKind switch
+        {
+            JsonValueKind.Array => doc.RootElement,
+            JsonValueKind.Object when doc.RootElement.TryGetProperty("results", out JsonElement results) => results,
+            _ => throw new JsonException("Expected an array or an object with a 'results' array.")
+        };
+
+        var builds = new List<RegistryBuild>(items.GetArrayLength());
+        foreach (JsonElement item in items.EnumerateArray())
+        {
+            // External registry API uses snake_case keys
+            string versionNumber = item.GetProperty("version_number").GetString()
+                                   ?? throw new JsonException("Missing version_number.");
+            string dateCreated = item.GetProperty("date_created").GetString()
+                                 ?? throw new JsonException("Missing date_created.");
+
+            builds.Add(new RegistryBuild
+            {
+                VersionNumber = versionNumber,
+                DateCreated = dateCreated,
+            });
+        }
+
+        return builds;
     }
 
     private static string SanitizePath(string input)

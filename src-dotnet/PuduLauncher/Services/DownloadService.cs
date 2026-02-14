@@ -4,7 +4,6 @@ using System.IO.Compression;
 using System.Text.Json;
 using PuduLauncher.Abstractions.Interfaces;
 using PuduLauncher.Constants;
-using PuduLauncher.Models.Enums;
 using PuduLauncher.Models.Events;
 using PuduLauncher.Models.Installations;
 using PuduLauncher.Services.Interfaces;
@@ -142,18 +141,26 @@ public class DownloadService(
             Directory.CreateDirectory(download.InstallPath);
             ZipFile.ExtractToDirectory(tempZipPath, download.InstallPath, overwriteFiles: true);
 
-            download.State = DownloadState.Scanning;
-            await PublishStateChangedAsync(download);
-
-            bool scanPassed = await scannerService.ScanInstallationAsync(download.InstallPath, download.GoodFileVersion, ct);
-            if (!scanPassed)
+            if (!string.IsNullOrWhiteSpace(download.GoodFileVersion))
             {
-                download.State = DownloadState.ScanFailed;
-                download.ErrorMessage = "Security scan failed — assemblies contain disallowed code";
+                download.State = DownloadState.Scanning;
                 await PublishStateChangedAsync(download);
 
-                CleanupDirectory(download.InstallPath);
-                return;
+                bool scanPassed = await scannerService.ScanInstallationAsync(download.InstallPath, download.GoodFileVersion, ct);
+                if (!scanPassed)
+                {
+                    download.State = DownloadState.ScanFailed;
+                    download.ErrorMessage = "Security scan failed — assemblies contain disallowed code";
+                    await PublishStateChangedAsync(download);
+
+                    CleanupDirectory(download.InstallPath);
+                    return;
+                }
+            }
+            else
+            {
+                logger.LogInformation("Skipping code scan for {ForkName} v{BuildVersion} - We are downloading from Unitystation official CDN",
+                    download.ForkName, download.BuildVersion);
             }
 
             var downloadedInstallation = new DownloadedInstallation

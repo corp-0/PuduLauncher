@@ -40,6 +40,12 @@ public class InstallationController(
     }
 
     [PuduCommand]
+    public async Task<List<RegistryBuild>> GetRegistryBuilds()
+    {
+        return await installationWorkflowService.ListRegistryBuildsAsync();
+    }
+    
+    [PuduCommand]
     public async Task DownloadVersion(int buildVersion)
     {
         await installationWorkflowService.StartRegistryDownloadAsync(buildVersion);

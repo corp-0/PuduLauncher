@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -12,32 +11,32 @@ namespace PuduLauncher.Generators;
 [Generator]
 public class PuduEndpointGenerator : IIncrementalGenerator
 {
-    private const string PuduControllerAttributeName =
+    private const string PUDU_CONTROLLER_ATTRIBUTE_NAME =
         "PuduLauncher.Abstractions.Attributes.PuduControllerAttribute";
 
-    private const string PuduCommandAttributeName =
+    private const string PUDU_COMMAND_ATTRIBUTE_NAME =
         "PuduLauncher.Abstractions.Attributes.PuduCommandAttribute";
 
-    private const string PuduEventAttributeName =
+    private const string PUDU_EVENT_ATTRIBUTE_NAME =
         "PuduLauncher.Abstractions.Attributes.PuduEventAttribute";
 
-    private const string PreferenceCategoryAttributeName =
+    private const string PREFERENCE_CATEGORY_ATTRIBUTE_NAME =
         "PuduLauncher.Abstractions.Attributes.PreferenceCategoryAttribute";
 
-    private const string PreferenceFieldAttributeName =
+    private const string PREFERENCE_FIELD_ATTRIBUTE_NAME =
         "PuduLauncher.Abstractions.Attributes.PreferenceFieldAttribute";
 
-    private const string EventBaseTypeName =
+    private const string EVENT_BASE_TYPE_NAME =
         "PuduLauncher.Abstractions.Models.EventBase";
 
-    private const string ManifestStartMarker = "PUDU_MANIFEST_START";
-    private const string ManifestEndMarker = "PUDU_MANIFEST_END";
+    private const string MANIFEST_START_MARKER = "PUDU_MANIFEST_START";
+    private const string MANIFEST_END_MARKER = "PUDU_MANIFEST_END";
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var controllerProvider = context.SyntaxProvider
             .ForAttributeWithMetadataName(
-                PuduControllerAttributeName,
+                PUDU_CONTROLLER_ATTRIBUTE_NAME,
                 predicate: static (node, _) => node is ClassDeclarationSyntax,
                 transform: static (ctx, ct) => ExtractControllerInfo(ctx, ct))
             .Where(static info => info is not null)
@@ -49,7 +48,7 @@ public class PuduEndpointGenerator : IIncrementalGenerator
         {
             var compilation = input.Left;
             var controllers = input.Right;
-            GenerateSources(spc, compilation, controllers!);
+            GenerateSources(spc, compilation, controllers);
         });
     }
 
@@ -78,7 +77,7 @@ public class PuduEndpointGenerator : IIncrementalGenerator
                 continue;
 
             var commandAttr = method.GetAttributes().FirstOrDefault(a =>
-                a.AttributeClass?.ToDisplayString() == PuduCommandAttributeName);
+                a.AttributeClass?.ToDisplayString() == PUDU_COMMAND_ATTRIBUTE_NAME);
 
             if (commandAttr is null)
                 continue;
@@ -230,8 +229,16 @@ public class PuduEndpointGenerator : IIncrementalGenerator
                     sb.AppendLine("                    throw new InvalidOperationException(\"Request body cannot be null.\");");
                     sb.AppendLine("                }");
                 }
+                else if (cmd.Parameters.Length == 1 && cmd.Parameters[0].JsonAccessor is not null)
+                {
+                    // Single primitive parameter: the body IS the value (e.g. "some-guid" or 42)
+                    var p = cmd.Parameters[0];
+                    sb.AppendLine("                using var doc = await JsonDocument.ParseAsync(ctx.Request.Body, cancellationToken: ctx.RequestAborted);");
+                    sb.AppendLine($"                var p_{p.Name} = doc.RootElement.{p.JsonAccessor};");
+                }
                 else if (cmd.Parameters.Length >= 1)
                 {
+                    // Multiple parameters: body is a JSON object with named properties
                     sb.AppendLine("                using var doc = await JsonDocument.ParseAsync(ctx.Request.Body, cancellationToken: ctx.RequestAborted);");
                     sb.AppendLine("                var root = doc.RootElement;");
                     foreach (var p in cmd.Parameters)
@@ -327,7 +334,7 @@ public class PuduEndpointGenerator : IIncrementalGenerator
     private static ModelInfo[] ExtractModelInfos(Compilation compilation)
     {
         var modelSymbols = new Dictionary<string, INamedTypeSymbol>(StringComparer.Ordinal);
-        var eventBaseSymbol = compilation.GetTypeByMetadataName(EventBaseTypeName);
+        var eventBaseSymbol = compilation.GetTypeByMetadataName(EVENT_BASE_TYPE_NAME);
 
         AddModelTypesFromNamespace(compilation.Assembly.GlobalNamespace, modelSymbols);
 
@@ -450,7 +457,7 @@ public class PuduEndpointGenerator : IIncrementalGenerator
             return null;
 
         var eventAttribute = symbol.GetAttributes().FirstOrDefault(a =>
-            a.AttributeClass?.ToDisplayString() == PuduEventAttributeName);
+            a.AttributeClass?.ToDisplayString() == PUDU_EVENT_ATTRIBUTE_NAME);
 
         if (eventAttribute is null || eventAttribute.ConstructorArguments.Length == 0)
             return null;
@@ -465,7 +472,7 @@ public class PuduEndpointGenerator : IIncrementalGenerator
     private static string? GetCategoryLabel(INamedTypeSymbol symbol)
     {
         var attr = symbol.GetAttributes().FirstOrDefault(a =>
-            a.AttributeClass?.ToDisplayString() == PreferenceCategoryAttributeName);
+            a.AttributeClass?.ToDisplayString() == PREFERENCE_CATEGORY_ATTRIBUTE_NAME);
 
         if (attr is null || attr.ConstructorArguments.Length == 0)
             return null;
@@ -477,7 +484,7 @@ public class PuduEndpointGenerator : IIncrementalGenerator
     private static (string? Label, string? Component) GetPreferenceFieldInfo(IPropertySymbol property)
     {
         var attr = property.GetAttributes().FirstOrDefault(a =>
-            a.AttributeClass?.ToDisplayString() == PreferenceFieldAttributeName);
+            a.AttributeClass?.ToDisplayString() == PREFERENCE_FIELD_ATTRIBUTE_NAME);
 
         if (attr is null || attr.ConstructorArguments.Length < 2)
             return (null, null);
@@ -509,9 +516,9 @@ public class PuduEndpointGenerator : IIncrementalGenerator
 
         sb.AppendLine("// <auto-generated/>");
         sb.AppendLine("#nullable enable");
-        sb.AppendLine($"/*{ManifestStartMarker}");
+        sb.AppendLine($"/*{MANIFEST_START_MARKER}");
         sb.AppendLine(manifestJson);
-        sb.AppendLine($"{ManifestEndMarker}*/");
+        sb.AppendLine($"{MANIFEST_END_MARKER}*/");
         sb.AppendLine("namespace PuduLauncher.Generated;");
         sb.AppendLine("internal static class PuduContractManifest");
         sb.AppendLine("{");
