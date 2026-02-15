@@ -38,6 +38,12 @@ public class PreferencesService : IPreferencesService
                 Path.Combine(_environmentService.GetUserdataDirectory(), "Installations");
         }
 
+        if (string.IsNullOrWhiteSpace(_preferences.Tts.InstallPath))
+        {
+            _preferences.Tts.InstallPath =
+                Path.Combine(_environmentService.GetUserdataDirectory(), "tts");
+        }
+
         return _preferences;
     }
 
@@ -77,6 +83,8 @@ public class PreferencesService : IPreferencesService
         var defaults = new Preferences();
         defaults.Installations.InstallationPath =
             Path.Combine(_environmentService.GetUserdataDirectory(), "Installations");
+        defaults.Tts.InstallPath =
+            Path.Combine(_environmentService.GetUserdataDirectory(), "tts");
 
         var json = JsonSerializer.Serialize(defaults, JsonCtx.Default.Preferences);
         File.WriteAllText(_preferencesFilePath, json);

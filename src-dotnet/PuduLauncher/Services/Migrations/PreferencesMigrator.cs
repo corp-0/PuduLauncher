@@ -8,7 +8,7 @@ public static class PreferencesMigrator
 {
     private static readonly IPreferencesMigration[] Migrations =
     [
-        // new MigrateV1ToV2()
+        // new MigrateV1ToV2(),
     ];
 
     public static (string Json, bool WasMigrated) MigrateToLatest(string rawJson)
