@@ -389,6 +389,7 @@ function generatePreferencesSchema(manifest) {
     categories.push({
       key: prop.name,
       label: categoryModel.categoryLabel,
+      layout: categoryModel.categoryLayout ?? null,
       fields,
     });
   }
@@ -403,8 +404,19 @@ function generatePreferencesSchema(manifest) {
   }
   const sortedComponents = [...componentValues].sort();
 
+  const layoutValues = new Set();
+  for (const cat of categories) {
+    if (typeof cat.layout === "string" && cat.layout.length > 0) {
+      layoutValues.add(cat.layout);
+    }
+  }
+  const sortedLayouts = [...layoutValues].sort();
+
   let output = HEADER + "\n";
   output += `export type PreferenceComponent = ${sortedComponents.map((c) => `'${escapeTsStringLiteral(c)}'`).join(" | ")};\n\n`;
+  if (sortedLayouts.length > 0) {
+    output += `export type CategoryLayout = ${sortedLayouts.map((l) => `'${escapeTsStringLiteral(l)}'`).join(" | ")};\n\n`;
+  }
   output += "export interface PreferenceFieldSchema {\n";
   output += "  key: string;\n";
   output += "  label: string;\n";
@@ -413,6 +425,9 @@ function generatePreferencesSchema(manifest) {
   output += "export interface PreferenceCategorySchema {\n";
   output += "  key: string;\n";
   output += "  label: string;\n";
+  if (sortedLayouts.length > 0) {
+    output += "  layout?: CategoryLayout;\n";
+  }
   output += "  fields: PreferenceFieldSchema[];\n";
   output += "}\n\n";
   output += "export const preferencesSchema: PreferenceCategorySchema[] = [\n";
@@ -421,6 +436,9 @@ function generatePreferencesSchema(manifest) {
     output += "  {\n";
     output += `    key: '${escapeTsStringLiteral(cat.key)}',\n`;
     output += `    label: '${escapeTsStringLiteral(cat.label)}',\n`;
+    if (typeof cat.layout === "string" && cat.layout.length > 0) {
+      output += `    layout: '${escapeTsStringLiteral(cat.layout)}',\n`;
+    }
     output += "    fields: [\n";
     for (const field of cat.fields) {
       output += `      { key: '${escapeTsStringLiteral(field.key)}', label: '${escapeTsStringLiteral(field.label)}', component: '${escapeTsStringLiteral(field.component)}' },\n`;

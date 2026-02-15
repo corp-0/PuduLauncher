@@ -2,12 +2,10 @@ using PuduLauncher.Abstractions.Attributes;
 
 namespace PuduLauncher.Models.Config;
 
-[PreferenceCategory("TTS")]
+[PreferenceCategory("TTS", layout: "TtsPreferencesLayout")]
 public class TtsPreferences
 {
-    [PreferenceField("Enable TTS", "toggle")]
     public bool Enabled { get; set; }
 
-    [PreferenceField("Installation Path", "path")]
     public string InstallPath { get; set; } = "";
 }

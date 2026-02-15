@@ -369,13 +369,16 @@ public class PuduEndpointGenerator : IIncrementalGenerator
             if (symbol.BaseType is not null && symbol.BaseType.SpecialType != SpecialType.System_Object)
                 baseType = MapTypeToTypeScript(symbol.BaseType);
 
+            var categoryInfo = GetCategoryInfo(symbol);
+
             models.Add(new ModelInfo(
                 Name: symbol.Name,
                 TypeParameters: symbol.TypeParameters.Select(tp => tp.Name).ToArray(),
                 ClrType: symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                 BaseType: baseType,
                 EventType: GetEventType(symbol, eventBaseSymbol),
-                CategoryLabel: GetCategoryLabel(symbol),
+                CategoryLabel: categoryInfo.Label,
+                CategoryLayout: categoryInfo.Layout,
                 Properties: properties));
         }
 
@@ -469,16 +472,23 @@ public class PuduEndpointGenerator : IIncrementalGenerator
         return eventType;
     }
 
-    private static string? GetCategoryLabel(INamedTypeSymbol symbol)
+    private static (string? Label, string? Layout) GetCategoryInfo(INamedTypeSymbol symbol)
     {
         var attr = symbol.GetAttributes().FirstOrDefault(a =>
             a.AttributeClass?.ToDisplayString() == PREFERENCE_CATEGORY_ATTRIBUTE_NAME);
 
         if (attr is null || attr.ConstructorArguments.Length == 0)
-            return null;
+            return (null, null);
 
         var label = attr.ConstructorArguments[0].Value as string;
-        return string.IsNullOrWhiteSpace(label) ? null : label;
+        if (string.IsNullOrWhiteSpace(label))
+            return (null, null);
+
+        string? layout = null;
+        if (attr.ConstructorArguments.Length >= 2)
+            layout = attr.ConstructorArguments[1].Value as string;
+
+        return (label, string.IsNullOrWhiteSpace(layout) ? null : layout);
     }
 
     private static (string? Label, string? Component) GetPreferenceFieldInfo(IPropertySymbol property)
@@ -628,6 +638,11 @@ public class PuduEndpointGenerator : IIncrementalGenerator
             sb.Append("null");
         else
             AppendJsonString(sb, model.CategoryLabel);
+        sb.Append(",\"categoryLayout\":");
+        if (model.CategoryLayout is null)
+            sb.Append("null");
+        else
+            AppendJsonString(sb, model.CategoryLayout);
         sb.Append(",\"properties\":[");
 
         for (int i = 0; i < model.Properties.Length; i++)
@@ -953,6 +968,7 @@ public class PuduEndpointGenerator : IIncrementalGenerator
         string? BaseType,
         string? EventType,
         string? CategoryLabel,
+        string? CategoryLayout,
         ModelPropertyInfo[] Properties);
 
     private record ModelPropertyInfo(
