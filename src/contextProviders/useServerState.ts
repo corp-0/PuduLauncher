@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type {
     DownloadProgressEvent,
     DownloadStateChangedEvent,
@@ -48,62 +48,62 @@ export function useServerState(options: UseServerStateOptions) {
 
     // Fetch initial state on mount
     useEffect(() => {
-        const installationsApi = new InstallationsApi();
-        const downloadsApi = new DownloadsApi();
+        void (async () => {
+            const installationsApi = new InstallationsApi();
+            const downloadsApi = new DownloadsApi();
 
-        installationsApi.getInstallations().then((result) => {
-            if (result.success && result.data) {
-                setInstallations(result.data);
-                return;
-            }
-
-            showError({
-                source: "frontend.installations.get-installations",
-                userMessage: "Failed to load local installations.",
-                code: "INSTALLATIONS_FETCH_FAILED",
-                technicalDetails: result.error ?? "Unknown backend error.",
-            });
-        }).catch((error: unknown) => {
-            const technicalDetails = error instanceof Error ? error.toString() : String(error);
-            showError({
-                source: "frontend.installations.get-installations",
-                userMessage: "Failed to load local installations.",
-                code: "INSTALLATIONS_FETCH_EXCEPTION",
-                technicalDetails,
-            });
-        });
-
-        downloadsApi.getActiveDownloads().then((result) => {
-            if (result.success && result.data) {
-                const map = new Map<string, DownloadSnapshot>();
-                for (const dl of result.data) {
-                    map.set(downloadKey(dl.forkName, dl.buildVersion), {
-                        forkName: dl.forkName,
-                        buildVersion: dl.buildVersion,
-                        state: dl.state,
-                        progress: dl.progress,
-                        errorMessage: dl.errorMessage,
+            try {
+                const result = await installationsApi.getInstallations();
+                if (result.success && result.data) {
+                    setInstallations(result.data);
+                } else {
+                    showError({
+                        source: "frontend.installations.get-installations",
+                        userMessage: "Failed to load local installations.",
+                        code: "INSTALLATIONS_FETCH_FAILED",
+                        technicalDetails: result.error ?? "Unknown backend error.",
                     });
                 }
-                setDownloads(map);
-                return;
+            } catch (error: unknown) {
+                showError({
+                    source: "frontend.installations.get-installations",
+                    userMessage: "Failed to load local installations.",
+                    code: "INSTALLATIONS_FETCH_EXCEPTION",
+                    technicalDetails: error instanceof Error ? error.toString() : String(error),
+                });
             }
 
-            showError({
-                source: "frontend.downloads.get-active-downloads",
-                userMessage: "Failed to load active downloads.",
-                code: "DOWNLOADS_FETCH_FAILED",
-                technicalDetails: result.error ?? "Unknown backend error.",
-            });
-        }).catch((error: unknown) => {
-            const technicalDetails = error instanceof Error ? error.toString() : String(error);
-            showError({
-                source: "frontend.downloads.get-active-downloads",
-                userMessage: "Failed to load active downloads.",
-                code: "DOWNLOADS_FETCH_EXCEPTION",
-                technicalDetails,
-            });
-        });
+            try {
+                const result = await downloadsApi.getActiveDownloads();
+                if (result.success && result.data) {
+                    const map = new Map<string, DownloadSnapshot>();
+                    for (const dl of result.data) {
+                        map.set(downloadKey(dl.forkName, dl.buildVersion), {
+                            forkName: dl.forkName,
+                            buildVersion: dl.buildVersion,
+                            state: dl.state,
+                            progress: dl.progress,
+                            errorMessage: dl.errorMessage,
+                        });
+                    }
+                    setDownloads(map);
+                } else {
+                    showError({
+                        source: "frontend.downloads.get-active-downloads",
+                        userMessage: "Failed to load active downloads.",
+                        code: "DOWNLOADS_FETCH_FAILED",
+                        technicalDetails: result.error ?? "Unknown backend error.",
+                    });
+                }
+            } catch (error: unknown) {
+                showError({
+                    source: "frontend.downloads.get-active-downloads",
+                    userMessage: "Failed to load active downloads.",
+                    code: "DOWNLOADS_FETCH_EXCEPTION",
+                    technicalDetails: error instanceof Error ? error.toString() : String(error),
+                });
+            }
+        })();
     }, [showError]);
 
     useEffect(() => {
@@ -247,15 +247,15 @@ export function useServerState(options: UseServerStateOptions) {
         };
     }, []);
 
-    const sortedServers = useMemo(() => {
+    const sortedServers = (() => {
         if (servers === null) {
             return [];
         }
 
         return [...servers].sort((left, right) => right.playerCount - left.playerCount);
-    }, [servers]);
+    })();
 
-    const startDownload = useCallback((server: GameServer) => {
+    const startDownload = async (server: GameServer) => {
         const forkName = server.forkName ?? "";
         const buildVersion = server.buildVersion;
         const key = downloadKey(forkName, buildVersion);
@@ -273,19 +273,16 @@ export function useServerState(options: UseServerStateOptions) {
         });
 
         const api = new DownloadsApi();
-        void api.startDownload(server).then((result) => {
-            if (result.success) {
-                return;
-            }
+        try {
+            const result = await api.startDownload(server);
+            if (result.success) return;
 
             const errorMessage = result.error ?? "Failed to start download.";
 
             setDownloads((prev) => {
                 const next = new Map(prev);
                 const existing = next.get(key);
-                if (!existing) {
-                    return next;
-                }
+                if (!existing) return next;
 
                 next.set(key, {
                     ...existing,
@@ -302,7 +299,7 @@ export function useServerState(options: UseServerStateOptions) {
                 technicalDetails: errorMessage,
                 dedupe: false,
             });
-        }).catch((error: unknown) => {
+        } catch (error: unknown) {
             const errorMessage = error instanceof Error
                 ? error.message
                 : "Failed to start download.";
@@ -310,9 +307,7 @@ export function useServerState(options: UseServerStateOptions) {
             setDownloads((prev) => {
                 const next = new Map(prev);
                 const existing = next.get(key);
-                if (!existing) {
-                    return next;
-                }
+                if (!existing) return next;
 
                 next.set(key, {
                     ...existing,
@@ -329,10 +324,10 @@ export function useServerState(options: UseServerStateOptions) {
                 technicalDetails: error instanceof Error ? error.toString() : String(error),
                 dedupe: false,
             });
-        });
-    }, [showError]);
+        }
+    };
 
-    const launchGame = useCallback((server: GameServer) => {
+    const launchGame = async (server: GameServer) => {
         const installation = installations.find(
             (i) => i.forkName === server.forkName && i.buildVersion === server.buildVersion,
         );
@@ -340,14 +335,13 @@ export function useServerState(options: UseServerStateOptions) {
         if (!installation) return;
 
         const api = new GameLaunchApi();
-        void api.launchGame({
-            installationId: installation.id,
-            serverIp: server.serverIp,
-            serverPort: server.serverPort,
-        }).then((result) => {
-            if (result.success) {
-                return;
-            }
+        try {
+            const result = await api.launchGame({
+                installationId: installation.id,
+                serverIp: server.serverIp,
+                serverPort: server.serverPort,
+            });
+            if (result.success) return;
 
             showError({
                 source: "frontend.game-launch.launch-game",
@@ -356,7 +350,7 @@ export function useServerState(options: UseServerStateOptions) {
                 technicalDetails: result.error ?? "Unknown backend error.",
                 dedupe: false,
             });
-        }).catch((error: unknown) => {
+        } catch (error: unknown) {
             showError({
                 source: "frontend.game-launch.launch-game",
                 userMessage: "Failed to launch game.",
@@ -364,16 +358,16 @@ export function useServerState(options: UseServerStateOptions) {
                 technicalDetails: error instanceof Error ? error.toString() : String(error),
                 dedupe: false,
             });
-        });
-    }, [installations, showError]);
+        }
+    };
 
-    const lastUpdatedLabel = useMemo(() => {
+    const lastUpdatedLabel = (() => {
         if (lastUpdatedAt === null) {
             return "Waiting for the first server list refresh...";
         }
 
         return `Last updated at ${lastUpdatedAt.toLocaleTimeString()}`;
-    }, [lastUpdatedAt]);
+    })();
 
     return {
         servers,

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 interface UsePaginatedCollectionOptions {
     initialPage?: number;
@@ -32,27 +32,25 @@ export function usePaginatedCollection<T>(
         setCurrentPage((prevPage) => Math.min(Math.max(prevPage, 1), totalPages));
     }, [totalPages]);
 
-    const currentPageItems = useMemo(() => {
-        const startIndex = (currentPage - 1) * normalizedPageSize;
-        const endIndex = startIndex + normalizedPageSize;
-        return items.slice(startIndex, endIndex);
-    }, [currentPage, items, normalizedPageSize]);
+    const startIndex = (currentPage - 1) * normalizedPageSize;
+    const endIndex = startIndex + normalizedPageSize;
+    const currentPageItems = items.slice(startIndex, endIndex);
 
-    const goToPage = useCallback((page: number) => {
+    const goToPage = (page: number) => {
         if (!Number.isInteger(page) || page < 1 || page > totalPages) {
             throw new Error("Invalid page number");
         }
 
         setCurrentPage(page);
-    }, [totalPages]);
+    };
 
-    const nextPage = useCallback(() => {
+    const nextPage = () => {
         setCurrentPage((prevPage) => Math.min(prevPage + 1, totalPages));
-    }, [totalPages]);
+    };
 
-    const previousPage = useCallback(() => {
+    const previousPage = () => {
         setCurrentPage((prevPage) => Math.max(prevPage - 1, 1));
-    }, []);
+    };
 
     return {
         items,

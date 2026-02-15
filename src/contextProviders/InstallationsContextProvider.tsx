@@ -1,7 +1,8 @@
-import { createContext, type PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, type PropsWithChildren, useContext, useEffect, useState } from "react";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { useInstallationState } from "../hooks/useInstallationState";
 import type { DownloadProgressEvent, DownloadStateChangedEvent, RegistryBuild } from "../pudu/generated";
-import { InstallationsApi } from "../pudu/generated";
+import { InstallationsApi, PreferencesApi } from "../pudu/generated";
 import { EventListener } from "../pudu/events/event-listener";
 import { useErrorContext } from "./ErrorContextProvider";
 
@@ -42,6 +43,7 @@ interface InstallationsContextValue {
     openRegistry: () => void;
     closeRegistry: () => void;
     downloadBuild: (buildVersion: number) => void;
+    openInstallationsFolder: () => void;
 }
 
 const InstallationsContext = createContext<InstallationsContextValue | undefined>(undefined);
@@ -56,7 +58,7 @@ export function InstallationsContextProvider(props: PropsWithChildren) {
     const [registryOpen, setRegistryOpen] = useState(false);
     const [registryDownloads, setRegistryDownloads] = useState<Map<number, RegistryDownloadSnapshot>>(new Map());
 
-    const installedBuildVersions = useMemo(() => {
+    const installedBuildVersions = (() => {
         const set = new Set<number>();
         if (installations) {
             for (const inst of installations) {
@@ -64,7 +66,7 @@ export function InstallationsContextProvider(props: PropsWithChildren) {
             }
         }
         return set;
-    }, [installations]);
+    })();
 
     useEffect(() => {
         const listener = new EventListener();
@@ -104,12 +106,13 @@ export function InstallationsContextProvider(props: PropsWithChildren) {
         };
     }, []);
 
-    const openRegistry = useCallback(() => {
+    const openRegistry = async () => {
         setRegistryOpen(true);
         setRegistryLoading(true);
 
         const api = new InstallationsApi();
-        void api.getRegistryBuilds().then((result) => {
+        try {
+            const result = await api.getRegistryBuilds();
             if (result.success && result.data) {
                 setRegistryBuilds(result.data);
             } else {
@@ -120,23 +123,47 @@ export function InstallationsContextProvider(props: PropsWithChildren) {
                     technicalDetails: result.error ?? "Unknown backend error.",
                 });
             }
-            setRegistryLoading(false);
-        }).catch((error: unknown) => {
+        } catch (error: unknown) {
             showError({
                 source: "frontend.installations.get-registry-builds",
                 userMessage: "Failed to load available builds.",
                 code: "REGISTRY_BUILDS_FETCH_EXCEPTION",
                 technicalDetails: error instanceof Error ? error.toString() : String(error),
             });
+        } finally {
             setRegistryLoading(false);
-        });
-    }, [showError]);
+        }
+    };
 
-    const closeRegistry = useCallback(() => {
+    const closeRegistry = () => {
         setRegistryOpen(false);
-    }, []);
+    };
 
-    const downloadBuild = useCallback((buildVersion: number) => {
+    const openInstallationsFolder = async () => {
+        try {
+            const api = new PreferencesApi();
+            const result = await api.getPreferences();
+            if (result.success && result.data) {
+                await revealItemInDir(result.data.installations.installationPath);
+            } else {
+                showError({
+                    source: "frontend.installations.open-folder",
+                    userMessage: "Failed to open installations folder.",
+                    code: "OPEN_INSTALLATIONS_FOLDER_FAILED",
+                    technicalDetails: result.error ?? "Unknown backend error.",
+                });
+            }
+        } catch (error: unknown) {
+            showError({
+                source: "frontend.installations.open-folder",
+                userMessage: "Failed to open installations folder.",
+                code: "OPEN_INSTALLATIONS_FOLDER_EXCEPTION",
+                technicalDetails: error instanceof Error ? error.message : String(error),
+            });
+        }
+    };
+
+    const downloadBuild = async (buildVersion: number) => {
         setRegistryDownloads((prev) => {
             const next = new Map(prev);
             next.set(buildVersion, {
@@ -148,7 +175,8 @@ export function InstallationsContextProvider(props: PropsWithChildren) {
         });
 
         const api = new InstallationsApi();
-        void api.downloadVersion(buildVersion).then((result) => {
+        try {
+            const result = await api.downloadVersion(buildVersion);
             if (result.success) return;
 
             setRegistryDownloads((prev) => {
@@ -168,7 +196,7 @@ export function InstallationsContextProvider(props: PropsWithChildren) {
                 technicalDetails: result.error ?? "Unknown backend error.",
                 dedupe: false,
             });
-        }).catch((error: unknown) => {
+        } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.toString() : String(error);
 
             setRegistryDownloads((prev) => {
@@ -188,10 +216,10 @@ export function InstallationsContextProvider(props: PropsWithChildren) {
                 technicalDetails: errorMessage,
                 dedupe: false,
             });
-        });
-    }, [showError]);
+        }
+    };
 
-    const cards = useMemo<InstallationCardViewModel[]>(() => {
+    const cards: InstallationCardViewModel[] = (() => {
         if (!installations) {
             return [];
         }
@@ -219,9 +247,9 @@ export function InstallationsContextProvider(props: PropsWithChildren) {
             onDelete: () => deleteInstallation(inst.id),
             onPlay: () => launchGame(inst.id),
         }));
-    }, [installations, deleteInstallation, launchGame]);
+    })();
 
-    const value = useMemo<InstallationsContextValue>(() => ({
+    const value: InstallationsContextValue = {
         cards,
         isLoading: installations === null,
         isEmpty: installations !== null && installations.length === 0,
@@ -233,7 +261,8 @@ export function InstallationsContextProvider(props: PropsWithChildren) {
         openRegistry,
         closeRegistry,
         downloadBuild,
-    }), [cards, installations, registryBuilds, registryLoading, registryOpen, registryDownloads, installedBuildVersions, openRegistry, closeRegistry, downloadBuild]);
+        openInstallationsFolder,
+    };
 
     return (
         <InstallationsContext.Provider value={value}>

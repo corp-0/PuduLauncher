@@ -12,8 +12,7 @@ import {openUrl} from "@tauri-apps/plugin-opener";
 import {
     createContext,
     type PropsWithChildren,
-    useContext,
-    useMemo
+    useContext
 } from "react";
 import {useMatch, useNavigate} from "react-router";
 import {SideBarMenuItemProps} from "../components/molecules/sideBar/SideBarMenuItem";
@@ -36,7 +35,7 @@ export function SideBarContextProvider(props: PropsWithChildren) {
     const isPreferencesActive = useMatch({path: "/preferences/*", end: false}) !== null;
     const isComponentsActive = useMatch({path: "/components/*", end: false}) !== null;
 
-    const menuItems = useMemo<SideBarMenuItemProps[]>(() => ([
+    const menuItems: SideBarMenuItemProps[] = [
         {
             text: "Servers",
             icon: <VideogameAsset/>,
@@ -67,15 +66,9 @@ export function SideBarContextProvider(props: PropsWithChildren) {
             isActive: isComponentsActive,
             onClick: () => navigate("/components"),
         },
-    ]), [
-        isInstallationsActive,
-        isNewsActive,
-        isPreferencesActive,
-        isServersActive,
-        navigate
-    ]);
+    ];
 
-    const externalLinks = useMemo<SideBarExternalLinkProps[]>(() => ([
+    const externalLinks: SideBarExternalLinkProps[] = [
         {
             tooltip: "Unitystation's website",
             icon: <Public/>,
@@ -97,12 +90,12 @@ export function SideBarContextProvider(props: PropsWithChildren) {
                 void openUrl("https://discord.com/invite/tFcTpBp");
             },
         },
-    ]), []);
+    ];
 
-    const value = useMemo<SideBarContextValue>(() => ({
+    const value: SideBarContextValue = {
         menuItems,
         externalLinks,
-    }), [externalLinks, menuItems]);
+    };
 
     return (
         <SideBarContext.Provider value={value}>

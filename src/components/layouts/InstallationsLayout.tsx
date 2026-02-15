@@ -1,11 +1,11 @@
-import { CloudDownload } from "@mui/icons-material";
+import { CloudDownload, Folder } from "@mui/icons-material";
 import { Box, Button, Stack, Typography } from "@mui/joy";
 import InstallationCardList from "../organisms/installations/InstallationCardList";
 import InstallationRegistryPopup from "../organisms/installations/InstallationRegistryPopup";
 import { useInstallationsContext } from "../../contextProviders/InstallationsContextProvider";
 
 export default function InstallationsLayout() {
-    const { openRegistry } = useInstallationsContext();
+    const { openRegistry, openInstallationsFolder } = useInstallationsContext();
 
     return (
         <Box sx={{ height: "100%", minWidth: 0, display: "flex", flexDirection: "column" }}>
@@ -18,14 +18,26 @@ export default function InstallationsLayout() {
                         Manage your local game installations
                     </Typography>
                 </Stack>
-                <Button
-                    variant="soft"
-                    color="primary"
-                    startDecorator={<CloudDownload />}
-                    onClick={openRegistry}
-                >
-                    Browse Builds
-                </Button>
+
+                <Stack direction="row" spacing={1}>
+                    <Button
+                        variant="outlined"
+                        color="primary"
+                        startDecorator={<Folder />}
+                        onClick={openInstallationsFolder}
+                    >
+                        Installations Folder
+                    </Button>
+                    <Button
+                        variant="soft"
+                        color="primary"
+                        startDecorator={<CloudDownload />}
+                        onClick={openRegistry}
+                    >
+                        Download Builds
+                    </Button>
+                </Stack>
+
             </Stack>
 
             <InstallationCardList />

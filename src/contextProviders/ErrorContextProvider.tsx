@@ -1,10 +1,8 @@
 import {
     createContext,
     type PropsWithChildren,
-    useCallback,
     useContext,
     useEffect,
-    useMemo,
     useRef,
     useState,
 } from "react";
@@ -107,7 +105,7 @@ export function ErrorContextProvider(props: PropsWithChildren) {
     const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
     const fingerprintsRef = useRef<Map<string, number>>(new Map());
 
-    const pushError = useCallback((error: ErrorDisplayItem, dedupe = true) => {
+    const pushError = (error: ErrorDisplayItem, dedupe = true) => {
         if (dedupe) {
             const now = Date.now();
             const fingerprint = buildFingerprint(error);
@@ -135,9 +133,9 @@ export function ErrorContextProvider(props: PropsWithChildren) {
         }
 
         setSnackbarQueue((prev) => [...prev, error]);
-    }, []);
+    };
 
-    const showError = useCallback((input: ErrorReportInput) => {
+    const showError = (input: ErrorReportInput) => {
         pushError({
             id: createId(),
             severity: "error",
@@ -149,9 +147,9 @@ export function ErrorContextProvider(props: PropsWithChildren) {
             isTransient: input.isTransient ?? true,
             timestamp: new Date().toISOString(),
         }, input.dedupe ?? true);
-    }, [pushError]);
+    };
 
-    const showFatal = useCallback((input: ErrorReportInput) => {
+    const showFatal = (input: ErrorReportInput) => {
         pushError({
             id: createId(),
             severity: "fatal",
@@ -163,22 +161,22 @@ export function ErrorContextProvider(props: PropsWithChildren) {
             isTransient: false,
             timestamp: new Date().toISOString(),
         }, input.dedupe ?? true);
-    }, [pushError]);
+    };
 
-    const clearFatal = useCallback(() => {
+    const clearFatal = () => {
         setFatalError(null);
         setCopyFeedback(null);
-    }, []);
+    };
 
-    const dismissSnackbar = useCallback(() => {
+    const dismissSnackbar = () => {
         setSnackbarQueue((prev) => prev.slice(1));
-    }, []);
+    };
 
-    const openLogDirectory = useCallback(() => {
+    const openLogDirectory = () => {
         void invoke("open_log_directory");
-    }, []);
+    };
 
-    const copyTrace = useCallback(async () => {
+    const copyTrace = async () => {
         if (!fatalError) {
             return;
         }
@@ -189,19 +187,22 @@ export function ErrorContextProvider(props: PropsWithChildren) {
         } catch {
             setCopyFeedback("Failed to copy trace");
         }
-    }, [fatalError]);
+    };
 
     useEffect(() => {
-        getSidecarPort()
-            .then(() => setBackendReady(true))
-            .catch((error) => {
+        void (async () => {
+            try {
+                await getSidecarPort();
+                setBackendReady(true);
+            } catch (error) {
                 showFatal({
                     source: "frontend.sidecar",
                     userMessage: "The backend process did not start in time.",
                     code: "SIDECAR_TIMEOUT",
                     technicalDetails: error instanceof Error ? error.message : String(error),
                 });
-            });
+            }
+        })();
     }, [showFatal]);
 
     useEffect(() => {
@@ -213,21 +214,19 @@ export function ErrorContextProvider(props: PropsWithChildren) {
             pushError(mapEventToDisplayItem(event));
         });
 
-        const api = new ErrorDisplayApi();
-
-        void api.getRecentErrors()
-            .then((result) => {
-                if (!result.success || !result.data) {
-                    return;
-                }
+        void (async () => {
+            const api = new ErrorDisplayApi();
+            try {
+                const result = await api.getRecentErrors();
+                if (!result.success || !result.data) return;
 
                 for (const error of result.data) {
                     pushError(mapEventToDisplayItem(error));
                 }
-            })
-            .catch(() => {
+            } catch {
                 // Ignore bootstrap errors here; this provider is itself error infrastructure.
-            });
+            }
+        })();
 
         return () => {
             listener.disconnect();
@@ -272,12 +271,12 @@ export function ErrorContextProvider(props: PropsWithChildren) {
         };
     }, [showFatal]);
 
-    const value = useMemo<ErrorContextValue>(() => ({
+    const value: ErrorContextValue = {
         showError,
         showFatal,
         clearFatal,
         recentErrors,
-    }), [clearFatal, recentErrors, showError, showFatal]);
+    };
 
     const currentSnackbar = snackbarQueue[0] ?? null;
     const fatalTrace = fatalError ? buildTrace(fatalError) : "";

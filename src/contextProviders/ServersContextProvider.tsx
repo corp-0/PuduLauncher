@@ -1,4 +1,4 @@
-import { createContext, type PropsWithChildren, useContext, useMemo } from "react";
+import { createContext, type PropsWithChildren, useContext } from "react";
 import { useMatch } from "react-router";
 import {
     getServerId,
@@ -41,38 +41,36 @@ export function ServersContextProvider(props: PropsWithChildren) {
         launchGame,
     } = useServerState({ isServersPageActive });
 
-    const cards = useMemo<ServerCardViewModel[]>(() => {
-        return sortedServers.map((server) => {
-            const serverId = getServerId(server);
-            const actionState = resolveActionState(server, downloads, installations, runningGames);
+    const cards: ServerCardViewModel[] = sortedServers.map((server) => {
+        const serverId = getServerId(server);
+        const actionState = resolveActionState(server, downloads, installations, runningGames);
 
-            return {
-                id: serverId,
-                name: resolveServerName(server),
-                map: resolveMapName(server),
-                build: String(server.buildVersion),
-                mode: resolveGameMode(server),
-                roundTime: resolveRoundTime(server),
-                playersOnline: Math.max(0, server.playerCount),
-                playerCapacity: Math.max(server.playerCount, server.playerCountMax),
-                pingMs: Math.max(0, server.pingMs ?? 0),
+        return {
+            id: serverId,
+            name: resolveServerName(server),
+            map: resolveMapName(server),
+            build: String(server.buildVersion),
+            mode: resolveGameMode(server),
+            roundTime: resolveRoundTime(server),
+            playersOnline: Math.max(0, server.playerCount),
+            playerCapacity: Math.max(server.playerCount, server.playerCountMax),
+            pingMs: Math.max(0, server.pingMs ?? 0),
+            actionState,
+            progress: resolveProgress(server, actionState, downloads),
+            onActionClick: resolveActionHandler(
                 actionState,
-                progress: resolveProgress(server, actionState, downloads),
-                onActionClick: resolveActionHandler(
-                    actionState,
-                    () => startDownload(server),
-                    () => launchGame(server),
-                ),
-            };
-        });
-    }, [downloads, installations, runningGames, sortedServers, startDownload, launchGame]);
+                () => startDownload(server),
+                () => launchGame(server),
+            ),
+        };
+    });
 
-    const value = useMemo<ServersContextValue>(() => ({
+    const value: ServersContextValue = {
         cards,
         isLoading: servers === null,
         isEmpty: servers !== null && cards.length === 0,
         lastUpdatedLabel,
-    }), [cards, lastUpdatedLabel, servers]);
+    };
 
     return (
         <ServersContext.Provider value={value}>
