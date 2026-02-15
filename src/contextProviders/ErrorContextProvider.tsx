@@ -8,10 +8,12 @@ import {
     useRef,
     useState,
 } from "react";
+import { CircularProgress, Modal, ModalDialog, Stack, Typography } from "@mui/joy";
 import FatalErrorModal from "../components/molecules/errors/FatalErrorModal";
 import ErrorSnackbar from "../components/molecules/errors/ErrorSnackbar";
 import { ErrorDisplayApi, type FrontendErrorEvent } from "../pudu/generated";
 import { EventListener } from "../pudu/events/event-listener";
+import { getSidecarPort } from "../pudu/sidecar";
 import { invoke } from "@tauri-apps/api/core";
 
 type ErrorSeverity = "error" | "fatal";
@@ -98,6 +100,7 @@ function buildTrace(error: ErrorDisplayItem) {
 
 export function ErrorContextProvider(props: PropsWithChildren) {
     const { children } = props;
+    const [backendReady, setBackendReady] = useState(false);
     const [recentErrors, setRecentErrors] = useState<ErrorDisplayItem[]>([]);
     const [snackbarQueue, setSnackbarQueue] = useState<ErrorDisplayItem[]>([]);
     const [fatalError, setFatalError] = useState<ErrorDisplayItem | null>(null);
@@ -189,18 +192,27 @@ export function ErrorContextProvider(props: PropsWithChildren) {
     }, [fatalError]);
 
     useEffect(() => {
+        getSidecarPort()
+            .then(() => setBackendReady(true))
+            .catch((error) => {
+                showFatal({
+                    source: "frontend.sidecar",
+                    userMessage: "The backend process did not start in time.",
+                    code: "SIDECAR_TIMEOUT",
+                    technicalDetails: error instanceof Error ? error.message : String(error),
+                });
+            });
+    }, [showFatal]);
+
+    useEffect(() => {
+        if (!backendReady) return;
+
         const listener = new EventListener();
 
         listener.on("frontend:error", (event) => {
             pushError(mapEventToDisplayItem(event));
         });
 
-        return () => {
-            listener.disconnect();
-        };
-    }, [pushError]);
-
-    useEffect(() => {
         const api = new ErrorDisplayApi();
 
         void api.getRecentErrors()
@@ -216,8 +228,13 @@ export function ErrorContextProvider(props: PropsWithChildren) {
             .catch(() => {
                 // Ignore bootstrap errors here; this provider is itself error infrastructure.
             });
-    }, [pushError]);
 
+        return () => {
+            listener.disconnect();
+        };
+    }, [backendReady, pushError]);
+
+    // Catch unhandled frontend errors globally.
     useEffect(() => {
         const onError = (event: ErrorEvent) => {
             const details = event.error instanceof Error
@@ -267,7 +284,18 @@ export function ErrorContextProvider(props: PropsWithChildren) {
 
     return (
         <ErrorContext.Provider value={value}>
-            {children}
+            {backendReady ? children : (
+                <Modal open>
+                    <ModalDialog layout="fullscreen">
+                        <Stack spacing={8} width="100%" height="100%" alignItems="center" justifyContent="center" direction="column">
+                            <Typography level="h1">
+                                PuduLauncher
+                            </Typography>
+                            <CircularProgress />
+                        </Stack>
+                    </ModalDialog>
+                </Modal>
+            )}
 
             <ErrorSnackbar
                 error={currentSnackbar}

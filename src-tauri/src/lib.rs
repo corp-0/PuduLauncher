@@ -1,5 +1,5 @@
 use std::sync::Mutex;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 mod sidecar;
 use sidecar::SidecarManager;
@@ -101,6 +101,7 @@ pub fn run() {
                         let port_state = app_handle.state::<SidecarPort>();
                         *port_state.0.lock().unwrap() = Some(port);
                         log::info!(target: "PuduTauri", "Sidecar ready on port {}", port);
+                        let _ = app_handle.emit("sidecar-ready", port);
                     }
                     Err(e) => log::error!(target: "PuduTauri", "Failed to start sidecar: {}", e),
                 }

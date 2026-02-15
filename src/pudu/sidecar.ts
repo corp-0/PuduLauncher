@@ -1,39 +1,69 @@
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 
 let cachedPort: number | null = null;
+let portPromise: Promise<number> | null = null;
 
 const isTauri = '__TAURI_INTERNALS__' in window;
 
+const SIDECAR_TIMEOUT_MS = 60_000;
+
 /**
- * Returns the sidecar port, fetching it from the Rust backend on first call.
+ * Returns the sidecar port.
+ *
+ * In Tauri mode, tries the Rust command first (in case the event already fired),
+ * then waits for the `sidecar-ready` Tauri event.
+ *
  * In standalone dev mode (no Tauri), reads from VITE_SIDECAR_PORT env var.
  */
-export async function getSidecarPort(): Promise<number> {
-  if (cachedPort) return cachedPort;
+export function getSidecarPort(): Promise<number> {
+  if (cachedPort) return Promise.resolve(cachedPort);
 
   if (!isTauri) {
     const envPort = import.meta.env.VITE_SIDECAR_PORT;
     if (!envPort) {
-      throw new Error('Running outside Tauri: set VITE_SIDECAR_PORT in .env.local');
+      return Promise.reject(new Error('Running outside Tauri: set VITE_SIDECAR_PORT in .env.local'));
     }
     cachedPort = Number(envPort);
-    return cachedPort;
+    return Promise.resolve(cachedPort);
   }
 
-  const maxRetries = 20;
-  const retryDelay = 500;
-
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      cachedPort = await invoke<number>('get_sidecar_port');
-      return cachedPort;
-    } catch {
-      // Sidecar not ready yet, wait and retry
-      await new Promise((r) => setTimeout(r, retryDelay));
-    }
+  // Deduplicate concurrent callers, one shared promise.
+  if (!portPromise) {
+    portPromise = discoverPort();
   }
 
-  throw new Error('Sidecar did not start in time');
+  return portPromise;
+}
+
+async function discoverPort(): Promise<number> {
+  // The event may have already fired before we loaded. Try the command first.
+  try {
+    const port = await invoke<number>('get_sidecar_port');
+    cachedPort = port;
+    return port;
+  } catch {
+    // Not ready yet — fall through to event listener.
+  }
+
+  return new Promise<number>((resolve, reject) => {
+    let settled = false;
+
+    const timeout = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        reject(new Error('Sidecar did not start in time'));
+      }
+    }, SIDECAR_TIMEOUT_MS);
+
+    void listen<number>('sidecar-ready', (event) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      cachedPort = event.payload;
+      resolve(event.payload);
+    });
+  });
 }
 
 export async function getSidecarBaseUrl(): Promise<string> {
