@@ -22,6 +22,7 @@ export interface FatalErrorModalProps {
     copyFeedback?: string | null;
     onCopyTrace: () => void | Promise<void>;
     onDismiss: () => void;
+    onSeeLogs?: () => void;
 }
 
 export default function FatalErrorModal(props: FatalErrorModalProps) {
@@ -31,6 +32,7 @@ export default function FatalErrorModal(props: FatalErrorModalProps) {
         copyFeedback,
         onCopyTrace,
         onDismiss,
+        onSeeLogs,
     } = props;
 
     return (
@@ -83,6 +85,11 @@ export default function FatalErrorModal(props: FatalErrorModalProps) {
                         <Button onClick={() => void onCopyTrace()}>
                             Copy trace
                         </Button>
+                        {onSeeLogs && (
+                            <Button variant="outlined" onClick={onSeeLogs}>
+                                See logs
+                            </Button>
+                        )}
                         <Button variant="outlined" onClick={onDismiss}>
                             Dismiss
                         </Button>

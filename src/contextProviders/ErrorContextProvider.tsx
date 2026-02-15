@@ -12,6 +12,7 @@ import FatalErrorModal from "../components/molecules/errors/FatalErrorModal";
 import ErrorSnackbar from "../components/molecules/errors/ErrorSnackbar";
 import { ErrorDisplayApi, type FrontendErrorEvent } from "../pudu/generated";
 import { EventListener } from "../pudu/events/event-listener";
+import { invoke } from "@tauri-apps/api/core";
 
 type ErrorSeverity = "error" | "fatal";
 
@@ -170,6 +171,10 @@ export function ErrorContextProvider(props: PropsWithChildren) {
         setSnackbarQueue((prev) => prev.slice(1));
     }, []);
 
+    const openLogDirectory = useCallback(() => {
+        void invoke("open_log_directory");
+    }, []);
+
     const copyTrace = useCallback(async () => {
         if (!fatalError) {
             return;
@@ -267,6 +272,7 @@ export function ErrorContextProvider(props: PropsWithChildren) {
             <ErrorSnackbar
                 error={currentSnackbar}
                 onClose={dismissSnackbar}
+                onSeeLogs={openLogDirectory}
             />
 
             <FatalErrorModal
@@ -275,6 +281,7 @@ export function ErrorContextProvider(props: PropsWithChildren) {
                 copyFeedback={copyFeedback}
                 onCopyTrace={copyTrace}
                 onDismiss={clearFatal}
+                onSeeLogs={openLogDirectory}
             />
         </ErrorContext.Provider>
     );

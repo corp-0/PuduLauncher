@@ -1,4 +1,5 @@
 import {
+    Button,
     Snackbar,
     Stack,
     Typography,
@@ -13,6 +14,7 @@ export interface ErrorSnackbarProps {
     error: ErrorSnackbarContent | null;
     autoHideDuration?: number;
     onClose: () => void;
+    onSeeLogs?: () => void;
 }
 
 export default function ErrorSnackbar(props: ErrorSnackbarProps) {
@@ -20,6 +22,7 @@ export default function ErrorSnackbar(props: ErrorSnackbarProps) {
         error,
         autoHideDuration = 6_000,
         onClose,
+        onSeeLogs,
     } = props;
 
     return (
@@ -29,6 +32,18 @@ export default function ErrorSnackbar(props: ErrorSnackbarProps) {
             onClose={onClose}
             color="danger"
             variant="soft"
+            endDecorator={
+                onSeeLogs && (
+                    <Button
+                        size="sm"
+                        variant="soft"
+                        color="danger"
+                        onClick={onSeeLogs}
+                    >
+                        See logs
+                    </Button>
+                )
+            }
         >
             <Stack spacing={0.25}>
                 <Typography level="body-sm" fontWeight="lg">
