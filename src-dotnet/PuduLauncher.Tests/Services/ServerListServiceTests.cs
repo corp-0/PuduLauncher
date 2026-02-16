@@ -138,6 +138,104 @@ public class ServerListServiceTests
         Assert.Empty(pingService.RequestedIps);
     }
 
+    [Fact]
+    public async Task FindServerAsync_MatchesServerByIpAndPort_WithoutPinging()
+    {
+        const string serverListApi = "https://example.test/server-list";
+
+        var handler = new DelegateHttpMessageHandler((request, _) =>
+        {
+            Assert.Equal(serverListApi, request.RequestUri?.ToString());
+            return DelegateHttpMessageHandler.Json("""
+                                                   {
+                                                     "servers": [
+                                                       {
+                                                         "ServerName": "Alpha",
+                                                         "ForkName": "UnityStationDevelop",
+                                                         "BuildVersion": 26021013,
+                                                         "ServerIP": "1.1.1.1",
+                                                         "ServerPort": 7777
+                                                       },
+                                                       {
+                                                         "ServerName": "Beta",
+                                                         "ForkName": "UnityStationDevelop",
+                                                         "BuildVersion": 26021013,
+                                                         "ServerIP": "1.1.1.1",
+                                                         "ServerPort": 8888
+                                                       }
+                                                     ]
+                                                   }
+                                                   """);
+        });
+
+        using var client = new HttpClient(handler);
+        var preferencesService = new StubPreferencesService(new Preferences
+        {
+            Servers = new ServerPreferences { ServerListApi = serverListApi }
+        });
+        var pingService = new DelegatePingService(_ => Task.FromResult("1ms"));
+
+        var service = new ServerListService(
+            new SingleHttpClientFactory(client),
+            preferencesService,
+            new NoOpErrorDisplayServer(),
+            pingService,
+            NullLogger<ServerListService>.Instance);
+
+        GameServer? server = await service.FindServerAsync("1.1.1.1", 7777);
+
+        Assert.NotNull(server);
+        Assert.Equal("Alpha", server.ServerName);
+        Assert.Empty(pingService.RequestedIps);
+    }
+
+    [Fact]
+    public async Task FindServerAsync_WhenPortMissing_MatchesByIp_WithoutPinging()
+    {
+        const string serverListApi = "https://example.test/server-list";
+
+        var handler = new DelegateHttpMessageHandler((request, _) =>
+        {
+            Assert.Equal(serverListApi, request.RequestUri?.ToString());
+            return DelegateHttpMessageHandler.Json("""
+                                                   {
+                                                     "servers": [
+                                                       {
+                                                         "ServerName": "FirstMatch",
+                                                         "ServerIP": "1.1.1.1",
+                                                         "ServerPort": 7777
+                                                       },
+                                                       {
+                                                         "ServerName": "SecondMatch",
+                                                         "ServerIP": "1.1.1.1",
+                                                         "ServerPort": 8888
+                                                       }
+                                                     ]
+                                                   }
+                                                   """);
+        });
+
+        using var client = new HttpClient(handler);
+        var preferencesService = new StubPreferencesService(new Preferences
+        {
+            Servers = new ServerPreferences { ServerListApi = serverListApi }
+        });
+        var pingService = new DelegatePingService(_ => Task.FromResult("1ms"));
+
+        var service = new ServerListService(
+            new SingleHttpClientFactory(client),
+            preferencesService,
+            new NoOpErrorDisplayServer(),
+            pingService,
+            NullLogger<ServerListService>.Instance);
+
+        GameServer? server = await service.FindServerAsync(" 1.1.1.1 ", null);
+
+        Assert.NotNull(server);
+        Assert.Equal("FirstMatch", server.ServerName);
+        Assert.Empty(pingService.RequestedIps);
+    }
+
     private sealed class StubPreferencesService(Preferences preferences) : IPreferencesService
     {
         private Preferences _preferences = preferences;

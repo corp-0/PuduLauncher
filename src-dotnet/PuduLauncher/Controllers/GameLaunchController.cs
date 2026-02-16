@@ -13,9 +13,6 @@ public class GameLaunchController(IGameLaunchService gameLaunchService)
         await gameLaunchService.LaunchGameAsync(
             request.InstallationId,
             request.ServerIp,
-            request.ServerPort,
-            request.ServerName,
-            request.GameMode,
-            request.CurrentMap);
+            request.ServerPort);
     }
 }

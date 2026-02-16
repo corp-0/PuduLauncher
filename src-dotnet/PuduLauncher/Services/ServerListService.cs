@@ -15,16 +15,24 @@ public class ServerListService(
 
     public async Task<List<GameServer>> FetchServerListAsync(CancellationToken ct = default)
     {
-        logger.LogInformation("Fetching server list");
-        using HttpClient client = httpClientFactory.CreateClient();
-        string data = await client.GetStringAsync(preferences.GetPreferences().Servers.ServerListApi, ct);
-        ServerList? serverData = JsonSerializer.Deserialize(data, JsonCtx.Default.ServerList);
-        List<GameServer> servers = serverData?.Servers ?? [];
-        logger.LogInformation("Fetched server list with {Amount} servers", servers.Count);
+        List<GameServer> servers = await FetchServerListCoreAsync(logAtInformation: true, ct);
 
         await PopulateServerPingsAsync(servers);
 
         return servers;
+    }
+
+    public async Task<GameServer?> FindServerAsync(string serverIp, int? serverPort = null, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(serverIp))
+        {
+            return null;
+        }
+
+        List<GameServer> servers = await FetchServerListCoreAsync(logAtInformation: false, ct);
+        string normalizedIp = NormalizeServerIpRequired(serverIp);
+
+        return servers.FirstOrDefault(server => EndpointMatches(server, normalizedIp, serverPort));
     }
 
     private async Task PopulateServerPingsAsync(List<GameServer> servers)
@@ -102,5 +110,53 @@ public class ServerListService(
         }
 
         return Math.Max(0, (int)Math.Round(parsed, MidpointRounding.AwayFromZero));
+    }
+
+    private async Task<List<GameServer>> FetchServerListCoreAsync(bool logAtInformation, CancellationToken ct)
+    {
+        if (logAtInformation)
+        {
+            logger.LogInformation("Fetching server list");
+        }
+        else
+        {
+            logger.LogDebug("Fetching server list for background lookup");
+        }
+
+        using HttpClient client = httpClientFactory.CreateClient();
+        string data = await client.GetStringAsync(preferences.GetPreferences().Servers.ServerListApi, ct);
+        ServerList? serverData = JsonSerializer.Deserialize(data, JsonCtx.Default.ServerList);
+        List<GameServer> servers = serverData?.Servers ?? [];
+
+        if (logAtInformation)
+        {
+            logger.LogInformation("Fetched server list with {Amount} servers", servers.Count);
+        }
+        else
+        {
+            logger.LogDebug("Fetched server list for background lookup with {Amount} servers", servers.Count);
+        }
+
+        return servers;
+    }
+
+    private static bool EndpointMatches(GameServer server, string normalizedIp, int? serverPort)
+    {
+        if (!string.Equals(NormalizeServerIpOptional(server.ServerIp), normalizedIp, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return !serverPort.HasValue || server.ServerPort == serverPort.Value;
+    }
+
+    private static string NormalizeServerIpRequired(string serverIp)
+    {
+        return serverIp.Trim();
+    }
+
+    private static string? NormalizeServerIpOptional(string? serverIp)
+    {
+        return string.IsNullOrWhiteSpace(serverIp) ? null : serverIp.Trim();
     }
 }

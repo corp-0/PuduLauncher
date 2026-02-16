@@ -9,7 +9,7 @@ import type {
 } from "../pudu/generated";
 import { DownloadsApi, GameLaunchApi, InstallationsApi, PreferencesApi, ServersApi } from "../pudu/generated";
 import { EventListener } from "../pudu/events/event-listener";
-import { downloadKey, resolveGameMode, resolveMapName, resolveServerName } from "./servers.resolvers";
+import { downloadKey } from "./servers.resolvers";
 import { useErrorContext } from "./ErrorContextProvider";
 
 // Mirrors C# DownloadState enum
@@ -340,9 +340,6 @@ export function useServerState(options: UseServerStateOptions) {
                 installationId: installation.id,
                 serverIp: server.serverIp,
                 serverPort: server.serverPort,
-                serverName: resolveServerName(server),
-                gameMode: resolveGameMode(server),
-                currentMap: resolveMapName(server),
             });
             if (result.success) return;
 

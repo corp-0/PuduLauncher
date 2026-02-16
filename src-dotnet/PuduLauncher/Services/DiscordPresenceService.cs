@@ -1,11 +1,17 @@
 using DiscordRPC;
 using PuduLauncher.Constants;
+using PuduLauncher.Models.Game;
 using PuduLauncher.Services.Interfaces;
 
 namespace PuduLauncher.Services;
 
-public class DiscordPresenceService(ILogger<DiscordPresenceService> logger) : IDiscordPresenceService
+public class DiscordPresenceService(
+    IServerListService serverListService,
+    IPreferencesService preferencesService,
+    ILogger<DiscordPresenceService> logger) : IDiscordPresenceService
 {
+    private const int DefaultServerTrackingIntervalMs = 10_000;
+
     private static readonly string[] LauncherDetailsVariants =
     [
         "Perusing the launcher...",
@@ -13,7 +19,6 @@ public class DiscordPresenceService(ILogger<DiscordPresenceService> logger) : ID
         "Checking what's live right now...",
         "Getting ready for the next round...",
         "Looking for a place to drop in...",
-        "Reviewing their checklist before launch...",
         "Choosing where to play next...",
         "Scanning the station network...",
         "Setting things up before launch...",
@@ -25,6 +30,8 @@ public class DiscordPresenceService(ILogger<DiscordPresenceService> logger) : ID
 
     private readonly Lock _lock = new();
     private DiscordRpcClient? _client;
+    private DateTime? _activeGameSessionStartedAtUtc;
+    private CancellationTokenSource? _serverTrackingCts;
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
@@ -64,6 +71,12 @@ public class DiscordPresenceService(ILogger<DiscordPresenceService> logger) : ID
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
+        StopServerTracking();
+        lock (_lock)
+        {
+            _activeGameSessionStartedAtUtc = null;
+        }
+
         DiscordRpcClient? client;
         lock (_lock)
         {
@@ -94,6 +107,12 @@ public class DiscordPresenceService(ILogger<DiscordPresenceService> logger) : ID
 
     public void SetLauncherState()
     {
+        StopServerTracking();
+        lock (_lock)
+        {
+            _activeGameSessionStartedAtUtc = null;
+        }
+
         SetPresenceSafe(
             details: GetRandomLauncherDetails(),
             state: "In launcher",
@@ -116,6 +135,48 @@ public class DiscordPresenceService(ILogger<DiscordPresenceService> logger) : ID
             includeTimestamp: true);
     }
 
+    public void SetInBuildState(BuildPresenceInfo info)
+    {
+        string resolvedState = BuildInServerState(info.ForkName);
+        string resolvedDetails = BuildInBuildDetails(info.BuildVersion);
+
+        SetPresenceSafe(
+            details: resolvedDetails,
+            state: resolvedState,
+            largeImageText: null,
+            randomizeLargeImage: true,
+            includeTimestamp: true);
+    }
+
+    public void StartGameSession(GameSessionPresenceInfo info)
+    {
+        StopServerTracking();
+        lock (_lock)
+        {
+            _activeGameSessionStartedAtUtc = DateTime.UtcNow;
+        }
+
+        if (string.IsNullOrWhiteSpace(info.ServerIp))
+        {
+            SetInBuildState(new BuildPresenceInfo(info.ForkName, info.BuildVersion));
+            return;
+        }
+
+        var normalizedSessionInfo = new GameSessionPresenceInfo(
+            info.ForkName,
+            info.BuildVersion,
+            info.ServerIp.Trim(),
+            info.ServerPort);
+
+        var cts = new CancellationTokenSource();
+        lock (_lock)
+        {
+            _serverTrackingCts = cts;
+        }
+
+        _ = Task.Run(() => TrackServerPresenceAsync(normalizedSessionInfo, cts.Token));
+    }
+
     private void SetPresenceSafe(string details, string state, string? largeImageText, bool randomizeLargeImage, bool includeTimestamp)
     {
         DiscordRpcClient? client;
@@ -128,11 +189,12 @@ public class DiscordPresenceService(ILogger<DiscordPresenceService> logger) : ID
 
         try
         {
+            DateTime? sessionStartedAtUtc = includeTimestamp ? GetOrCreateGameSessionStartTimestamp() : null;
             var presence = new RichPresence
             {
                 Details = details,
                 State = state,
-                Timestamps = includeTimestamp ? Timestamps.Now : null
+                Timestamps = sessionStartedAtUtc.HasValue ? new Timestamps(sessionStartedAtUtc.Value) : null
             };
 
             if (randomizeLargeImage || !string.IsNullOrWhiteSpace(largeImageText))
@@ -149,6 +211,170 @@ public class DiscordPresenceService(ILogger<DiscordPresenceService> logger) : ID
         catch (Exception ex)
         {
             logger.LogDebug(ex, "Failed to set Discord rich presence state.");
+        }
+    }
+
+    private async Task TrackServerPresenceAsync(GameSessionPresenceInfo sessionInfo, CancellationToken ct)
+    {
+        try
+        {
+            GameServer? initialServer = await ResolveInitialServerAsync(sessionInfo.ServerIp!, sessionInfo.ServerPort, ct);
+            if (initialServer == null)
+            {
+                SetInBuildState(new BuildPresenceInfo(sessionInfo.ForkName, sessionInfo.BuildVersion));
+                return;
+            }
+
+            ct.ThrowIfCancellationRequested();
+            ApplyServerPresence(initialServer, sessionInfo);
+
+            while (!ct.IsCancellationRequested)
+            {
+                int delayMs = ResolveServerTrackingIntervalMs();
+                await Task.Delay(delayMs, ct);
+
+                GameServer? server = await TryFindServerAsync(sessionInfo.ServerIp!, sessionInfo.ServerPort, ct);
+                if (server == null)
+                {
+                    continue;
+                }
+
+                ct.ThrowIfCancellationRequested();
+                ApplyServerPresence(server, sessionInfo);
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(
+                ex,
+                "Failed while tracking server presence for Discord ({ServerIp}:{ServerPort}).",
+                sessionInfo.ServerIp,
+                sessionInfo.ServerPort);
+            SetInBuildState(new BuildPresenceInfo(sessionInfo.ForkName, sessionInfo.BuildVersion));
+        }
+    }
+
+    private async Task<GameServer?> ResolveInitialServerAsync(string serverIp, int? serverPort, CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                return await serverListService.FindServerAsync(serverIp, serverPort, ct);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                logger.LogDebug(
+                    ex,
+                    "Failed initial server lookup for Discord presence tracking ({ServerIp}:{ServerPort}). Retrying.",
+                    serverIp,
+                    serverPort);
+
+                int delayMs = ResolveServerTrackingIntervalMs();
+                await Task.Delay(delayMs, ct);
+            }
+        }
+
+        return null;
+    }
+
+    private async Task<GameServer?> TryFindServerAsync(string serverIp, int? serverPort, CancellationToken ct)
+    {
+        try
+        {
+            return await serverListService.FindServerAsync(serverIp, serverPort, ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(
+                ex,
+                "Failed to query server list for Discord presence tracking ({ServerIp}:{ServerPort}).",
+                serverIp,
+                serverPort);
+            return null;
+        }
+    }
+
+    private void ApplyServerPresence(GameServer server, GameSessionPresenceInfo sessionInfo)
+    {
+        string? resolvedForkName = string.IsNullOrWhiteSpace(server.ForkName)
+            ? sessionInfo.ForkName
+            : server.ForkName;
+
+        int? resolvedServerPort = server.ServerPort > 0
+            ? server.ServerPort
+            : sessionInfo.ServerPort;
+
+        SetInServerState(new ServerPresenceInfo(
+            resolvedForkName,
+            server.ServerName,
+            server.GameMode,
+            server.CurrentMap,
+            server.ServerIp,
+            resolvedServerPort));
+    }
+
+    private int ResolveServerTrackingIntervalMs()
+    {
+        try
+        {
+            int intervalSeconds = preferencesService.GetPreferences().Servers.ServerListFetchIntervalSeconds;
+            return Math.Max(1, intervalSeconds) * 1000;
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(
+                ex,
+                "Failed to read server tracking interval for Discord presence. Using default {DefaultServerTrackingIntervalMs}ms.",
+                DefaultServerTrackingIntervalMs);
+            return DefaultServerTrackingIntervalMs;
+        }
+    }
+
+    private void StopServerTracking()
+    {
+        CancellationTokenSource? cts;
+        lock (_lock)
+        {
+            cts = _serverTrackingCts;
+            _serverTrackingCts = null;
+        }
+
+        if (cts == null)
+        {
+            return;
+        }
+
+        try
+        {
+            cts.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+    }
+
+    private DateTime GetOrCreateGameSessionStartTimestamp()
+    {
+        lock (_lock)
+        {
+            if (!_activeGameSessionStartedAtUtc.HasValue)
+            {
+                _activeGameSessionStartedAtUtc = DateTime.UtcNow;
+            }
+
+            return _activeGameSessionStartedAtUtc.Value;
         }
     }
 
@@ -170,6 +396,11 @@ public class DiscordPresenceService(ILogger<DiscordPresenceService> logger) : ID
         }
 
         return "At unknown server";
+    }
+
+    private static string BuildInBuildDetails(int? buildVersion)
+    {
+        return buildVersion.HasValue ? $"Build {buildVersion.Value}" : "Build unknown";
     }
 
     private static string BuildLargeImageText(string? gameMode, string? currentMap)

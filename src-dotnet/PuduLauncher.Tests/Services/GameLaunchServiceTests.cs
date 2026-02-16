@@ -71,6 +71,14 @@ public class GameLaunchServiceTests
         public void SetInServerState(ServerPresenceInfo info)
         {
         }
+
+        public void SetInBuildState(BuildPresenceInfo info)
+        {
+        }
+
+        public void StartGameSession(GameSessionPresenceInfo info)
+        {
+        }
     }
 
     private sealed class FakeInstallationService(Installation installation) : IInstallationService
