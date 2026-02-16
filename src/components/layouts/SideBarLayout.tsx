@@ -6,7 +6,7 @@ import { SideBarContextProvider } from "../../contextProviders/SideBarContextPro
 export default function SideBarLayout() {
 
     return (
-        <Box sx={{ display: 'flex', height: '100dvh', width: '100dvw', flexDirection: "row" }}>
+        <Box sx={{ display: 'flex', height: '100dvh', width: '100%', flexDirection: "row" }}>
             <SideBarContextProvider>
                 <SideBar />
             </SideBarContextProvider>

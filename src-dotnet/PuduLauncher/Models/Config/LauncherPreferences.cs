@@ -5,6 +5,13 @@ namespace PuduLauncher.Models.Config;
 [PreferenceCategory("Launcher")]
 public class LauncherPreferences
 {
-    [PreferenceField("Ignore Version Update", "number")]
-    public int IgnoreVersionUpdate { get; set; }
+    [PreferenceField("Theme", "select",
+    Options = new[] {
+        "Pudu",
+        "Unitystation Classic",
+        "Austral Forest Night",
+        "Doors95",
+        "Hotdog Stand"
+    })]
+    public string Theme { get; set; } = "Pudu";
 }

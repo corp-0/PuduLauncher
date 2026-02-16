@@ -1,17 +1,16 @@
 import "@fontsource/inter";
 import { BrowserRouter, Route, Routes } from "react-router";
-import { CssBaseline, CssVarsProvider } from "@mui/joy";
+import { CssBaseline, CssVarsProvider, GlobalStyles } from "@mui/joy";
 import SideBarLayout from "./components/layouts/SideBarLayout";
 import ServersPage from "./components/pages/ServersPage";
 import WorkInProgressLayout from "./components/layouts/workInProgressLayout/WorkInProgressLayout";
 import { useThemeContext } from "./contextProviders/ThemeProvider";
-import { themeRegistry } from "./themes";
+import { themeRegistry, themeScrollbarRegistry } from "./themes";
 import ComponentsDemoPage from "./components/pages/ComponentsDemoPage.tsx";
 import { ServersContextProvider } from "./contextProviders/ServersContextProvider";
 import { ErrorContextProvider } from "./contextProviders/ErrorContextProvider";
 import InstallationsPage from "./components/pages/InstallationsPage.tsx";
 import PreferencesPage from "./components/pages/PreferencesPage.tsx";
-
 
 function App() {
     const { themeId } = useThemeContext();
@@ -19,6 +18,7 @@ function App() {
     return (
         <CssVarsProvider defaultMode="dark" modeStorageKey="pudu-color-mode" theme={themeRegistry[themeId]}>
             <CssBaseline />
+            <GlobalStyles styles={themeScrollbarRegistry[themeId]} />
             <BrowserRouter>
                 <ErrorContextProvider>
                     <ServersContextProvider>

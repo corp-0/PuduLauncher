@@ -1,5 +1,6 @@
 import PreferenceInputFieldRow from "../../molecules/preferences/PreferenceInputFieldRow";
 import PreferencePathFieldRow from "../../molecules/preferences/PreferencePathFieldRow";
+import PreferenceSelectFieldRow from "../../molecules/preferences/PreferenceSelectFieldRow";
 import PreferenceToggleFieldRow from "../../molecules/preferences/PreferenceToggleFieldRow";
 import type { PreferenceFieldSchema } from "../../../pudu/generated";
 
@@ -44,6 +45,17 @@ export default function PreferenceField(props: PreferenceFieldProps) {
                 />
             );
 
+        case "select":
+            return (
+                <PreferenceSelectFieldRow
+                    label={schema.label}
+                    tooltip={schema.tooltip}
+                    value={(value as string) ?? ""}
+                    options={schema.options ?? []}
+                    onChange={onChange}
+                />
+            );
+
         case "text":
         default:
             return (
@@ -57,4 +69,3 @@ export default function PreferenceField(props: PreferenceFieldProps) {
             );
     }
 }
-

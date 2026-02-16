@@ -54,7 +54,7 @@ export default function PreferenceCategory(props: PreferenceCategoryProps) {
 
     return (
         <Card variant="outlined">
-            <CardContent orientation="horizontal">
+            <CardContent orientation="horizontal" sx={{ px: 2, pt: 1 }}>
                 <Typography level="title-lg" sx={{ mb: 1 }}>
                     {schema.label}
                 </Typography>

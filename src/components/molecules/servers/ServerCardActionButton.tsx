@@ -24,7 +24,6 @@ export default function ServerCardActionButton(props: ServerCardActionButtonProp
                 width: "100%",
                 fontWeight: "lg",
                 minHeight: 44,
-                boxShadow: "sm",
             }}
         >
             {label}

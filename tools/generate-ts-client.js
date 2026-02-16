@@ -386,6 +386,15 @@ function generatePreferencesSchema(manifest) {
         if (typeof field.tooltip === "string" && field.tooltip.length > 0) {
           entry.tooltip = field.tooltip;
         }
+        if (Array.isArray(field.options) && field.options.length > 0) {
+          entry.options = field.options
+            .filter((option) => typeof option === "string")
+            .map((option) => option.trim())
+            .filter((option) => option.length > 0);
+          if (entry.options.length === 0) {
+            delete entry.options;
+          }
+        }
         fields.push(entry);
       }
     }
@@ -426,6 +435,7 @@ function generatePreferencesSchema(manifest) {
   output += "  label: string;\n";
   output += "  component: PreferenceComponent;\n";
   output += "  tooltip?: string;\n";
+  output += "  options?: string[];\n";
   output += "}\n\n";
   output += "export interface PreferenceCategorySchema {\n";
   output += "  key: string;\n";
@@ -452,6 +462,9 @@ function generatePreferencesSchema(manifest) {
       output += `component: '${escapeTsStringLiteral(field.component)}'`;
       if (typeof field.tooltip === "string" && field.tooltip.length > 0) {
         output += `, tooltip: '${escapeTsStringLiteral(field.tooltip)}'`;
+      }
+      if (Array.isArray(field.options) && field.options.length > 0) {
+        output += `, options: [${field.options.map((option) => `'${escapeTsStringLiteral(option)}'`).join(", ")}]`;
       }
       output += " },\n";
     }

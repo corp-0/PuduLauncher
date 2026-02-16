@@ -95,6 +95,19 @@ const unitystationClassicTheme = extendTheme({
       },
     },
   },
+  fontFamily: {
+    body: '"Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif',
+    display: '"Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif',
+    code: '"Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif',
+  },
 });
+
+export const unitystationClassicScrollbarStyles: Record<string, any> = {
+  "*": { scrollbarWidth: "thin", scrollbarColor: "#38729c #0d1c29" },
+  "*::-webkit-scrollbar": { width: "12px", height: "12px" },
+  "*::-webkit-scrollbar-track": { background: "#0d1c29" },
+  "*::-webkit-scrollbar-thumb": { backgroundColor: "#38729c", border: "2px solid #0d1c29", borderRadius: "8px" },
+  "*::-webkit-scrollbar-thumb:hover": { backgroundColor: "#4fa1db" },
+};
 
 export default unitystationClassicTheme;

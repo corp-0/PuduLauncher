@@ -91,4 +91,12 @@ const puduTheme = extendTheme({
   },
 });
 
+export const puduScrollbarStyles: Record<string, any> = {
+  "*": { scrollbarWidth: "thin", scrollbarColor: "#8d7d6d #241e1a" },
+  "*::-webkit-scrollbar": { width: "12px", height: "12px" },
+  "*::-webkit-scrollbar-track": { background: "#241e1a" },
+  "*::-webkit-scrollbar-thumb": { backgroundColor: "#8d7d6d", border: "2px solid #241e1a", borderRadius: "8px" },
+  "*::-webkit-scrollbar-thumb:hover": { backgroundColor: "#a99a8a" },
+};
+
 export default puduTheme;

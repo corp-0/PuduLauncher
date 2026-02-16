@@ -6,6 +6,9 @@ import PreferenceCategory from "./PreferenceCategory";
 
 const mockPreferences: Preferences = {
     version: 1,
+    launcher: {
+        theme: "Pudu",
+    },
     servers: {
         serverListApi: "https://api.example.com/servers",
         serverListFetchIntervalSeconds: 60,
@@ -53,6 +56,12 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
+export const LauncherCategory: Story = {
+    args: {
+        schema: getCategoryByKey("launcher"),
+    },
+};
+
 export const ServersCategory: Story = {
     args: {
         schema: getCategoryByKey("servers"),
@@ -70,4 +79,3 @@ export const TtsCategoryLayout: Story = {
         schema: getCategoryByKey("tts"),
     },
 };
-

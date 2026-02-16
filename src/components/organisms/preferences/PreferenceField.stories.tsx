@@ -85,3 +85,15 @@ export const Path: Story = {
     },
 };
 
+export const Select: Story = {
+    args: {
+        schema: {
+            key: "theme",
+            label: "Theme",
+            component: "select",
+            tooltip: "Choose the launcher theme.",
+            options: ["Pudu", "Forest", "Nordic"],
+        },
+        value: "Pudu",
+    },
+};

@@ -17,10 +17,11 @@ export default function SideBarExternalLink(props: SideBarExternalLinkProps) {
                 sx={{
                     cursor: "pointer",
                     transition: "background-color .2s, color .2s",
-                    bgcolor: "neutral.800",
+                    bgcolor: "background.level3",
+                    color: "text.primary",
                     "&:hover": {
-                        bgcolor: "neutral.100",
-                        color: "primary.plainColor",
+                        bgcolor: "background.popup",
+                        color: "text.tertiary",
                     },
                 }}
             >
