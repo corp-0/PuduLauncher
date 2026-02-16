@@ -19,6 +19,9 @@ try
     builder.Services.AddSingleton<IBlogService, BlogService>();
     builder.Services.AddSingleton<IChangelogService, ChangelogService>();
     builder.Services.AddSingleton<IPingService, PingService>();
+    builder.Services.AddSingleton<DiscordPresenceService>();
+    builder.Services.AddSingleton<IDiscordPresenceService>(sp => sp.GetRequiredService<DiscordPresenceService>());
+    builder.Services.AddHostedService(sp => sp.GetRequiredService<DiscordPresenceService>());
     builder.Services.AddSingleton<IServerListService, ServerListService>();
     builder.Services.AddSingleton<IInstallationService, InstallationService>();
     builder.Services.AddSingleton<IScannerService, ScannerService>();
@@ -39,6 +42,7 @@ try
 
     // Force initialization so stale installations are reconciled at startup.
     app.Services.GetRequiredService<IInstallationService>();
+
 
     await app.StartAsSidecarAsync();
 }

@@ -34,6 +34,7 @@ public class GameLaunchServiceTests
                 installationService,
                 new TestEnvironmentService(userdataDirectory),
                 new NoOpEventPublisher(),
+                new NoOpDiscordPresenceService(),
                 logger);
 
             InvalidOperationException ex = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -55,6 +56,21 @@ public class GameLaunchServiceTests
         string path = Path.Combine(Path.GetTempPath(), $"pudulauncher-tests-{Guid.NewGuid():N}");
         Directory.CreateDirectory(path);
         return path;
+    }
+
+    private sealed class NoOpDiscordPresenceService : IDiscordPresenceService
+    {
+        public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public void SetLauncherState()
+        {
+        }
+
+        public void SetInServerState(ServerPresenceInfo info)
+        {
+        }
     }
 
     private sealed class FakeInstallationService(Installation installation) : IInstallationService

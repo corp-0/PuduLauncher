@@ -11,11 +11,18 @@ public class GameLaunchService(
     IInstallationService installationService,
     IEnvironmentService environmentService,
     IEventPublisher eventPublisher,
+    IDiscordPresenceService discordPresenceService,
     ILogger<GameLaunchService> logger) : IGameLaunchService
 {
     private readonly ConcurrentDictionary<string, Process> _runningGames = new();
 
-    public async Task LaunchGameAsync(Guid installationId, string? serverIp = null, int? serverPort = null)
+    public async Task LaunchGameAsync(
+        Guid installationId,
+        string? serverIp = null,
+        int? serverPort = null,
+        string? serverName = null,
+        string? gameMode = null,
+        string? currentMap = null)
     {
         var installation = installationService.GetInstallationById(installationId)
             ?? throw new InvalidOperationException($"Installation not found: {installationId}");
@@ -52,6 +59,7 @@ public class GameLaunchService(
                 process.Dispose();
 
                 logger.LogInformation("Game exited: {GameKey}", gameKey);
+                discordPresenceService.SetLauncherState();
 
                 await eventPublisher.PublishAsync(new GameStateChangedEvent
                 {
@@ -79,6 +87,13 @@ public class GameLaunchService(
             }
 
             _runningGames.TryAdd(gameKey, process);
+            discordPresenceService.SetInServerState(new ServerPresenceInfo(
+                installation.ForkName,
+                serverName,
+                gameMode,
+                currentMap,
+                serverIp,
+                serverPort));
 
             logger.LogInformation(
                 "Launched game: Fork={ForkName} Version={BuildVersion} Server={ServerIp}:{ServerPort}",
