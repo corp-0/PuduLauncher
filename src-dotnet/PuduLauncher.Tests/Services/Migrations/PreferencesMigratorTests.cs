@@ -28,11 +28,12 @@ public class PreferencesMigratorTests
     [Theory]
     [InlineData("{}")]
     [InlineData("""{"version":"2"}""")]
-    public void MigrateToLatest_WhenPreferencesNeedMigration_ButChainIsMissing_Throws(string rawJson)
+    public void MigrateToLatest_WhenPreferencesAreTreatedAsCurrent_DoesNotMigrate(string rawJson)
     {
-        var exception = Assert.Throws<InvalidOperationException>(() => PreferencesMigrator.MigrateToLatest(rawJson));
-        Assert.Contains("Migration chain incomplete", exception.Message, StringComparison.Ordinal);
-        Assert.Contains($"expected {Preferences.CurrentVersion}", exception.Message, StringComparison.Ordinal);
+        var (json, wasMigrated) = PreferencesMigrator.MigrateToLatest(rawJson);
+
+        Assert.False(wasMigrated);
+        Assert.Equal(rawJson, json);
     }
 
     [Fact]

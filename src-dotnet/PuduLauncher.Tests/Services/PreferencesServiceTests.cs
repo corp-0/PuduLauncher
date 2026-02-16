@@ -48,8 +48,7 @@ public class PreferencesServiceTests
                 Version = 1,
                 Launcher = new LauncherPreferences
                 {
-                    IsTtsEnabled = false,
-                    IgnoreVersionUpdate = 9
+                    Theme = "Hotdog Stand"
                 },
                 Servers = new ServerPreferences
                 {
@@ -68,8 +67,7 @@ public class PreferencesServiceTests
             Preferences persisted = ReadPreferences(GetPreferencesPath(userdataDirectory));
 
             Assert.Equal(Preferences.CurrentVersion, persisted.Version);
-            Assert.False(persisted.Launcher.IsTtsEnabled);
-            Assert.Equal(9, persisted.Launcher.IgnoreVersionUpdate);
+            Assert.Equal("Hotdog Stand", persisted.Launcher.Theme);
             Assert.Equal("https://example.test/servers", persisted.Servers.ServerListApi);
             Assert.Equal(99, persisted.Servers.ServerListFetchIntervalSeconds);
             Assert.True(persisted.Installations.AutoRemove);

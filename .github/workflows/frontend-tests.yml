@@ -1,0 +1,32 @@
+name: frontend-tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: install dependencies
+        run: npm ci
+
+      - name: run frontend lint
+        run: npm run lint
+
+      - name: run frontend build
+        run: npm run build
+
+      - name: run frontend tests
+        run: npm test
