@@ -1,6 +1,6 @@
-import { Card, Stack, Typography } from "@mui/joy";
+import { Card, CardActions, CardContent, Stack, Typography } from "@mui/joy";
 import type { PreferenceCategorySchema, Preferences } from "../../../pudu/generated";
-import PreferenceField from "./PreferenceField";
+import PreferenceField from "../../organisms/preferences/PreferenceField";
 import { customLayouts } from "./customLayouts";
 
 interface PreferenceCategoryProps {
@@ -54,10 +54,14 @@ export default function PreferenceCategory(props: PreferenceCategoryProps) {
 
     return (
         <Card variant="outlined">
-            <Typography level="title-lg" sx={{ mb: 1 }}>
-                {schema.label}
-            </Typography>
-            {renderFields()}
+            <CardContent orientation="horizontal">
+                <Typography level="title-lg" sx={{ mb: 1 }}>
+                    {schema.label}
+                </Typography>
+            </CardContent>
+            <CardActions orientation="vertical">
+                {renderFields()}
+            </CardActions>
         </Card>
     );
 }
