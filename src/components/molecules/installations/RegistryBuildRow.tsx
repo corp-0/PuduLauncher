@@ -86,7 +86,6 @@ export default function RegistryBuildRow(props: RegistryBuildRowProps) {
 
                     {isBusy && (
                         <Stack direction="row" spacing={1} alignItems="center">
-                            <CircularProgress size="sm" />
                             <Typography level="body-sm">
                                 {STATE_LABELS[download.state] ?? "Processing"}
                                 {isDownloading && download.progress > 0 && ` ${Math.round(download.progress)}%`}

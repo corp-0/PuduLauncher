@@ -355,13 +355,14 @@ public class PuduEndpointGenerator : IIncrementalGenerator
                 .OrderBy(p => p.Locations.FirstOrDefault()?.SourceSpan.Start ?? int.MaxValue)
                 .Select(p =>
                 {
-                    var (label, component) = GetPreferenceFieldInfo(p);
+                    var (label, component, tooltip) = GetPreferenceFieldInfo(p);
                     return new ModelPropertyInfo(
                         Name: ToCamelCase(p.Name),
                         Type: MapTypeToTypeScript(p.Type),
                         Optional: IsOptionalProperty(p),
                         Label: label,
-                        Component: component);
+                        Component: component,
+                        Tooltip: tooltip);
                 })
                 .ToArray();
 
@@ -491,21 +492,26 @@ public class PuduEndpointGenerator : IIncrementalGenerator
         return (label, string.IsNullOrWhiteSpace(layout) ? null : layout);
     }
 
-    private static (string? Label, string? Component) GetPreferenceFieldInfo(IPropertySymbol property)
+    private static (string? Label, string? Component, string? Tooltip) GetPreferenceFieldInfo(IPropertySymbol property)
     {
         var attr = property.GetAttributes().FirstOrDefault(a =>
             a.AttributeClass?.ToDisplayString() == PREFERENCE_FIELD_ATTRIBUTE_NAME);
 
         if (attr is null || attr.ConstructorArguments.Length < 2)
-            return (null, null);
+            return (null, null, null);
 
         var label = attr.ConstructorArguments[0].Value as string;
         var component = attr.ConstructorArguments[1].Value as string;
 
         if (string.IsNullOrWhiteSpace(label) || string.IsNullOrWhiteSpace(component))
-            return (null, null);
+            return (null, null, null);
 
-        return (label, component);
+        string? tooltip = null;
+        var tooltipArg = attr.NamedArguments.FirstOrDefault(a => a.Key == "Tooltip");
+        if (tooltipArg.Key is not null && tooltipArg.Value.Value is string t && !string.IsNullOrWhiteSpace(t))
+            tooltip = t;
+
+        return (label, component, tooltip);
     }
 
     private static bool InheritsFrom(INamedTypeSymbol symbol, INamedTypeSymbol baseTypeSymbol)
@@ -667,6 +673,11 @@ public class PuduEndpointGenerator : IIncrementalGenerator
                 sb.Append("null");
             else
                 AppendJsonString(sb, property.Component);
+            sb.Append(",\"tooltip\":");
+            if (property.Tooltip is null)
+                sb.Append("null");
+            else
+                AppendJsonString(sb, property.Tooltip);
             sb.Append('}');
         }
 
@@ -976,5 +987,6 @@ public class PuduEndpointGenerator : IIncrementalGenerator
         string Type,
         bool Optional,
         string? Label,
-        string? Component);
+        string? Component,
+        string? Tooltip);
 }

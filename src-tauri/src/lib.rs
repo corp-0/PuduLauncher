@@ -87,6 +87,7 @@ pub fn run() {
                 .max_file_size(10_000_000) // 10 MB per file
                 .build(),
         )
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
         .manage(SidecarPort(Mutex::new(None)))

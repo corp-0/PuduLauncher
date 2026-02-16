@@ -7,6 +7,7 @@ public sealed class PreferenceFieldAttribute : Attribute
 {
     public string Label { get; }
     public string Component { get; }
+    public string? Tooltip { get; set; }
 
     public PreferenceFieldAttribute(string label, string component)
     {

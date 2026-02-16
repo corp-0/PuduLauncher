@@ -382,7 +382,11 @@ function generatePreferencesSchema(manifest) {
     const fields = [];
     for (const field of categoryModel.properties ?? []) {
       if (typeof field.label === "string" && typeof field.component === "string") {
-        fields.push({ key: field.name, label: field.label, component: field.component });
+        const entry = { key: field.name, label: field.label, component: field.component };
+        if (typeof field.tooltip === "string" && field.tooltip.length > 0) {
+          entry.tooltip = field.tooltip;
+        }
+        fields.push(entry);
       }
     }
 
@@ -421,6 +425,7 @@ function generatePreferencesSchema(manifest) {
   output += "  key: string;\n";
   output += "  label: string;\n";
   output += "  component: PreferenceComponent;\n";
+  output += "  tooltip?: string;\n";
   output += "}\n\n";
   output += "export interface PreferenceCategorySchema {\n";
   output += "  key: string;\n";
@@ -441,7 +446,14 @@ function generatePreferencesSchema(manifest) {
     }
     output += "    fields: [\n";
     for (const field of cat.fields) {
-      output += `      { key: '${escapeTsStringLiteral(field.key)}', label: '${escapeTsStringLiteral(field.label)}', component: '${escapeTsStringLiteral(field.component)}' },\n`;
+      output += "      { ";
+      output += `key: '${escapeTsStringLiteral(field.key)}', `;
+      output += `label: '${escapeTsStringLiteral(field.label)}', `;
+      output += `component: '${escapeTsStringLiteral(field.component)}'`;
+      if (typeof field.tooltip === "string" && field.tooltip.length > 0) {
+        output += `, tooltip: '${escapeTsStringLiteral(field.tooltip)}'`;
+      }
+      output += " },\n";
     }
     output += "    ],\n";
     output += "  },\n";

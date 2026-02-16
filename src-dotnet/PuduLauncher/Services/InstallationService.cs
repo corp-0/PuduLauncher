@@ -66,6 +66,7 @@ public class InstallationService : IInstallationService
             installation.ForkName, installation.BuildVersion, installation.InstallationPath);
 
         await PublishInstallationsChangedAsync();
+        await CleanupOldVersionsAsync();
     }
 
     public async Task DeleteInstallationAsync(Guid id)
@@ -102,7 +103,11 @@ public class InstallationService : IInstallationService
         }
 
         var toDelete = _installations
-            .Where(i => !i.RecentlyUsed)
+            .GroupBy(i => i.ForkName, StringComparer.OrdinalIgnoreCase)
+            .SelectMany(group => group
+                .OrderByDescending(i => i.BuildVersion)
+                .ThenByDescending(i => i.LastPlayedDate)
+                .Skip(1))
             .ToList();
 
         if (toDelete.Count == 0)
@@ -133,19 +138,29 @@ public class InstallationService : IInstallationService
         EnsureDirectoryExists(newBasePath);
 
         string oldBasePath = _preferencesService.GetPreferences().Installations.InstallationPath;
+        string normalizedOldBase = Path.GetFullPath(oldBasePath);
+        string normalizedNewBase = Path.GetFullPath(newBasePath);
+
+        _logger.LogInformation(
+            "Moving installations from {OldBasePath} to {NewBasePath} ({Count} total installations)",
+            normalizedOldBase, normalizedNewBase, _installations.Count);
 
         var toMove = _installations
-            .Where(i => i.InstallationPath.StartsWith(oldBasePath, StringComparison.Ordinal))
+            .Where(i => Path.GetFullPath(i.InstallationPath)
+                .StartsWith(normalizedOldBase, StringComparison.OrdinalIgnoreCase))
             .ToList();
+
+        _logger.LogInformation("{MatchCount} installations matched for move", toMove.Count);
 
         foreach (var installation in toMove)
         {
-            string oldPath = installation.InstallationPath;
-            string newPath = oldPath.Replace(oldBasePath, newBasePath, StringComparison.Ordinal);
+            string normalizedInstallPath = Path.GetFullPath(installation.InstallationPath);
+            string relativePath = normalizedInstallPath[normalizedOldBase.Length..].TrimStart(Path.DirectorySeparatorChar);
+            string newPath = Path.Combine(normalizedNewBase, relativePath);
 
-            if (!Directory.Exists(oldPath))
+            if (!Directory.Exists(normalizedInstallPath))
             {
-                _logger.LogWarning("Source directory does not exist, skipping: {Path}", oldPath);
+                _logger.LogWarning("Source directory does not exist, skipping: {Path}", normalizedInstallPath);
                 continue;
             }
 
@@ -161,14 +176,14 @@ public class InstallationService : IInstallationService
                 Directory.CreateDirectory(parentDir);
             }
 
-            Directory.Move(oldPath, newPath);
+            Directory.Move(normalizedInstallPath, newPath);
             installation.InstallationPath = newPath;
 
-            _logger.LogInformation("Moved installation from {Old} to {New}", oldPath, newPath);
+            _logger.LogInformation("Moved installation from {Old} to {New}", normalizedInstallPath, newPath);
         }
 
         var prefs = _preferencesService.GetPreferences();
-        prefs.Installations.InstallationPath = newBasePath;
+        prefs.Installations.InstallationPath = normalizedNewBase;
         await _preferencesService.UpdatePreferencesAsync(prefs);
 
         WriteInstallations();
