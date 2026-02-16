@@ -1,4 +1,5 @@
-import { extendTheme } from "@mui/joy/styles";
+import {extendTheme} from "@mui/joy/styles";
+import {CSSProperties} from "react";
 
 // DOORS 95 PALETTE
 const WIN95_TEAL = "#008080";      // Desktop Background
@@ -257,9 +258,9 @@ const doors95 = extendTheme({
     },
 });
 
-export const doors95ScrollbarStyles: Record<string, any> = {
-    "*": { scrollbarWidth: "thin", scrollbarColor: `${WIN95_GRAY} ${WIN95_TEAL}` },
-    "*::-webkit-scrollbar": { width: "16px", height: "16px" },
+export const doors95ScrollbarStyles: Record<string, CSSProperties> = {
+    "*": {scrollbarWidth: "thin", scrollbarColor: `${WIN95_GRAY} ${WIN95_TEAL}`},
+    "*::-webkit-scrollbar": {width: "16px", height: "16px"},
     "*::-webkit-scrollbar-track": {
         background: WIN95_TEAL,
         boxShadow: sunkenWell,
@@ -269,7 +270,7 @@ export const doors95ScrollbarStyles: Record<string, any> = {
         boxShadow: bevelUp,
         border: "none",
     },
-    "*::-webkit-scrollbar-thumb:hover": { backgroundColor: WIN95_BLUE },
+    "*::-webkit-scrollbar-thumb:hover": {backgroundColor: WIN95_BLUE},
 };
 
 export default doors95;

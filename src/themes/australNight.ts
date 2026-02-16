@@ -1,4 +1,5 @@
-import { extendTheme } from "@mui/joy/styles";
+import {extendTheme} from "@mui/joy/styles";
+import {CSSProperties} from "react";
 
 const australNight = extendTheme({
     colorSchemes: {
@@ -86,12 +87,12 @@ const australNight = extendTheme({
     },
 });
 
-export const australNightScrollbarStyles: Record<string, any> = {
-    "*": { scrollbarWidth: "thin", scrollbarColor: "#1fab78 #0e1b14" },
-    "*::-webkit-scrollbar": { width: "12px", height: "12px" },
-    "*::-webkit-scrollbar-track": { background: "#0e1b14" },
-    "*::-webkit-scrollbar-thumb": { backgroundColor: "#1fab78", border: "2px solid #0e1b14", borderRadius: "8px" },
-    "*::-webkit-scrollbar-thumb:hover": { backgroundColor: "#3bc792" },
+export const australNightScrollbarStyles: Record<string, CSSProperties> = {
+    "*": {scrollbarWidth: "thin", scrollbarColor: "#1fab78 #0e1b14"},
+    "*::-webkit-scrollbar": {width: "12px", height: "12px"},
+    "*::-webkit-scrollbar-track": {background: "#0e1b14"},
+    "*::-webkit-scrollbar-thumb": {backgroundColor: "#1fab78", border: "2px solid #0e1b14", borderRadius: "8px"},
+    "*::-webkit-scrollbar-thumb:hover": {backgroundColor: "#3bc792"},
 };
 
 export default australNight;

@@ -1,6 +1,6 @@
-import type { ComponentType } from "react";
-import { Typography } from "@mui/joy";
-import type { CategoryLayout, Preferences } from "../../../pudu/generated";
+import type {ComponentType} from "react";
+import {Typography} from "@mui/joy";
+import type {CategoryLayout, Preferences} from "../../../pudu/generated";
 
 export interface CustomLayoutProps {
     categoryKey: string;
@@ -8,10 +8,13 @@ export interface CustomLayoutProps {
     updateField: (categoryKey: string, fieldKey: string, value: unknown) => void;
 }
 
-function TtsPreferencesLayout(_props: CustomLayoutProps) {
+function TtsPreferencesLayout(props: CustomLayoutProps) {
+    const stringProps = JSON.stringify(props);
+
     return (
-        <Typography level="body-sm" sx={{ color: "text.tertiary", fontStyle: "italic" }}>
+        <Typography level="body-sm" sx={{color: "text.tertiary", fontStyle: "italic"}}>
             TTS preferences will be available here.
+            {stringProps}
         </Typography>
     );
 }

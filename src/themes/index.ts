@@ -1,8 +1,9 @@
-import australNightTheme, { australNightScrollbarStyles } from "./australNight";
-import doors95Theme, { doors95ScrollbarStyles } from "./doors95";
-import hotdogStandTheme, { hotdogStandScrollbarStyles } from "./hotdogStand"
-import puduTheme, { puduScrollbarStyles } from "./pudu"
-import unitystationClassicTheme, { unitystationClassicScrollbarStyles } from "./unitystationClassic"
+import australNightTheme, {australNightScrollbarStyles} from "./australNight";
+import doors95Theme, {doors95ScrollbarStyles} from "./doors95";
+import hotdogStandTheme, {hotdogStandScrollbarStyles} from "./hotdogStand"
+import puduTheme, {puduScrollbarStyles} from "./pudu"
+import unitystationClassicTheme, {unitystationClassicScrollbarStyles} from "./unitystationClassic"
+import {CSSProperties} from "react";
 
 export const themeRegistry = {
     hotdogStand: hotdogStandTheme,
@@ -14,7 +15,7 @@ export const themeRegistry = {
 
 export type ThemeId = keyof typeof themeRegistry;
 
-export const themeScrollbarRegistry: Record<ThemeId, Record<string, any>> = {
+export const themeScrollbarRegistry: Record<ThemeId, Record<string, CSSProperties>> = {
     hotdogStand: hotdogStandScrollbarStyles,
     australNight: australNightScrollbarStyles,
     doors95: doors95ScrollbarStyles,
