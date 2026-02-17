@@ -2,6 +2,7 @@ using PuduLauncher.Controllers;
 using PuduLauncher.Models.Blog;
 using PuduLauncher.Models.Changelog;
 using PuduLauncher.Models.Config;
+using PuduLauncher.Models.Onboarding;
 using PuduLauncher.Services.Interfaces;
 
 namespace PuduLauncher.Tests.Controllers;
@@ -65,6 +66,39 @@ public class ControllerTests
         Assert.Equal("If you can read this, then that means I'm not dead", message);
     }
 
+    [Fact]
+    public void OnboardingController_GetPendingSteps_ReturnsServiceResult()
+    {
+        var service = new StubOnboardingService();
+        var controller = new OnboardingController(service);
+
+        List<OnboardingStep> result = controller.GetPendingSteps();
+
+        Assert.Same(service.PendingSteps, result);
+    }
+
+    [Fact]
+    public async Task OnboardingController_CompleteStep_ForwardsStepId()
+    {
+        var service = new StubOnboardingService();
+        var controller = new OnboardingController(service);
+
+        await controller.CompleteStep("step-123");
+
+        Assert.Equal("step-123", service.CompletedStepId);
+    }
+
+    [Fact]
+    public async Task OnboardingController_MarkStepSeen_ForwardsStepId()
+    {
+        var service = new StubOnboardingService();
+        var controller = new OnboardingController(service);
+
+        await controller.MarkStepSeen("step-abc");
+
+        Assert.Equal("step-abc", service.SeenStepId);
+    }
+
     private sealed class StubBlogService : IBlogService
     {
         public int ReceivedCount { get; private set; }
@@ -112,6 +146,41 @@ public class ControllerTests
         public Task UpdatePreferencesAsync(Preferences preferences)
         {
             UpdatedPreferences = preferences;
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class StubOnboardingService : IOnboardingService
+    {
+        public List<OnboardingStep> PendingSteps { get; } =
+        [
+            new OnboardingStep { Id = "step-1", ComponentKey = "component-a", Title = "Step one" }
+        ];
+
+        public string? SeenStepId { get; private set; }
+        public string? CompletedStepId { get; private set; }
+        public string? DismissedStepId { get; private set; }
+
+        public List<OnboardingStep> GetPendingSteps()
+        {
+            return PendingSteps;
+        }
+
+        public Task MarkStepSeenAsync(string stepId)
+        {
+            SeenStepId = stepId;
+            return Task.CompletedTask;
+        }
+
+        public Task CompleteStepAsync(string stepId)
+        {
+            CompletedStepId = stepId;
+            return Task.CompletedTask;
+        }
+
+        public Task DismissStepAsync(string stepId)
+        {
+            DismissedStepId = stepId;
             return Task.CompletedTask;
         }
     }

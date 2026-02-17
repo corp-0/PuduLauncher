@@ -33,6 +33,7 @@ try
     builder.Services.AddSingleton<ITtsInstallService, TtsInstallService>();
     builder.Services.AddSingleton<ITtsServerService, TtsServerService>();
     builder.Services.AddSingleton<ITtsService, TtsService>();
+    builder.Services.AddSingleton<IOnboardingService, OnboardingService>();
 
     // ── App ───────────────────────────────────────────
     WebApplication app = builder.Build();

@@ -48,7 +48,7 @@ public class TtsService : ITtsService, IDisposable
             _status = TtsStatus.Installed;
         }
 
-        if (prefs.Tts.Enabled && _status == TtsStatus.Installed)
+        if (prefs.Tts.Enabled && prefs.Tts.AutoStartOnLaunch && _status == TtsStatus.Installed)
         {
             _ = Task.Run(() => StartServerAsync());
         }

@@ -17,6 +17,11 @@ import {
 import {useMatch, useNavigate} from "react-router";
 import {SideBarMenuItemProps} from "../components/molecules/sideBar/SideBarMenuItem";
 import {SideBarExternalLinkProps} from "../components/molecules/sideBar/SideBarExternalLink";
+import {
+    UNITYSTATION_DISCORD_URL,
+    UNITYSTATION_PATREON_URL,
+    UNITYSTATION_WEBSITE_URL
+} from "../constants/externalLinks";
 
 interface SideBarContextValue {
     menuItems: SideBarMenuItemProps[];
@@ -73,21 +78,21 @@ export function SideBarContextProvider(props: PropsWithChildren) {
             tooltip: "Unitystation's website",
             icon: <Public/>,
             onClick: () => {
-                void openUrl("https://unitystation.org/");
+                void openUrl(UNITYSTATION_WEBSITE_URL);
             },
         },
         {
             tooltip: "Unitystation's Patreon",
             icon: <Favorite/>,
             onClick: () => {
-                void openUrl("https://patreon.com/unitystation/");
+                void openUrl(UNITYSTATION_PATREON_URL);
             },
         },
         {
             tooltip: "Unitystation's Discord",
             icon: <Message/>,
             onClick: () => {
-                void openUrl("https://discord.com/invite/tFcTpBp");
+                void openUrl(UNITYSTATION_DISCORD_URL);
             },
         },
     ];

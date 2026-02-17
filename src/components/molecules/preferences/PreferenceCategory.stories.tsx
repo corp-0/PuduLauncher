@@ -20,6 +20,7 @@ const mockPreferences: Preferences = {
     tts: {
         enabled: false,
         installPath: "C:\\Games\\Pudu\\TTS",
+        autoStartOnLaunch: true,
     },
 };
 

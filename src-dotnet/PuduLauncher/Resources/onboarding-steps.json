@@ -1,0 +1,26 @@
+[
+  {
+    "id": "welcome-v1",
+    "componentKey": "welcome",
+    "title": "Welcome to Pudu Launcher!",
+    "description": "Let's get you set up with the best experience.",
+    "isRequired": true,
+    "order": 0
+  },
+  {
+    "id": "basic-preferences-v1",
+    "componentKey": "launcher-basics",
+    "title": "Launcher basics",
+    "description": "Let's get you set up with the best experience.",
+    "isRequired": true,
+    "order": 1
+  },
+  {
+    "id": "ready-v1",
+    "componentKey": "all-ready",
+    "title": "You're ready!",
+    "description": "Let's get you set up with the best experience.",
+    "isRequired": true,
+    "order": 2
+  }
+]

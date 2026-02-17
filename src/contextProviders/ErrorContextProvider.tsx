@@ -14,9 +14,9 @@ import { EventListener } from "../pudu/events/event-listener";
 import { getSidecarPort } from "../pudu/sidecar";
 import { invoke } from "@tauri-apps/api/core";
 
-type ErrorSeverity = "error" | "fatal";
+export type ErrorSeverity = "error" | "fatal";
 
-interface ErrorReportInput {
+export interface ErrorReportInput {
     source: string;
     userMessage: string;
     code?: string | null;
@@ -26,7 +26,7 @@ interface ErrorReportInput {
     dedupe?: boolean;
 }
 
-interface ErrorDisplayItem {
+export interface ErrorDisplayItem {
     id: string;
     severity: ErrorSeverity;
     source: string;
@@ -38,14 +38,14 @@ interface ErrorDisplayItem {
     timestamp: string;
 }
 
-interface ErrorContextValue {
+export interface ErrorContextValue {
     showError: (input: ErrorReportInput) => void;
     showFatal: (input: ErrorReportInput) => void;
     clearFatal: () => void;
     recentErrors: ErrorDisplayItem[];
 }
 
-const ErrorContext = createContext<ErrorContextValue | undefined>(undefined);
+export const ErrorContext = createContext<ErrorContextValue | undefined>(undefined);
 
 const DEDUPE_WINDOW_MS = 30_000;
 const MAX_RECENT_ERRORS = 100;
