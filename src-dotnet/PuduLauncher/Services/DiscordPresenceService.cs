@@ -387,15 +387,15 @@ public class DiscordPresenceService(
     {
         if (!string.IsNullOrWhiteSpace(serverName))
         {
-            return $"At {serverName.Trim()}";
+            return $"In {serverName.Trim()}";
         }
 
         if (!string.IsNullOrWhiteSpace(serverIp))
         {
-            return serverPort.HasValue ? $"At {serverIp}:{serverPort.Value}" : $"At {serverIp}";
+            return serverPort.HasValue ? $"In {serverIp}:{serverPort.Value}" : $"In {serverIp}";
         }
 
-        return "At unknown server";
+        return "In unknown server";
     }
 
     private static string BuildInBuildDetails(int? buildVersion)

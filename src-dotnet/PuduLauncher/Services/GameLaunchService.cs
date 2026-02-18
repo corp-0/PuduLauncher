@@ -44,8 +44,14 @@ public class GameLaunchService(
             }
 
             startInfo.UseShellExecute = false;
+            startInfo.CreateNoWindow = true;
+            startInfo.RedirectStandardOutput = true;
+            startInfo.RedirectStandardError = true;
 
             var process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
+            // Drain child output so game engine logs do not bubble up to launcher logs.
+            process.OutputDataReceived += (_, _) => { };
+            process.ErrorDataReceived += (_, _) => { };
 
             var eventServerIp = serverIp ?? string.Empty;
             var eventServerPort = serverPort ?? 0;
@@ -86,6 +92,8 @@ public class GameLaunchService(
                 throw new InvalidOperationException($"Game process failed to start for executable: {executable}");
             }
 
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
             _runningGames.TryAdd(gameKey, process);
             discordPresenceService.StartGameSession(new GameSessionPresenceInfo(
                 installation.ForkName,

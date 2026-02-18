@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useErrorContext } from "../../../../../contextProviders/ErrorContextProvider";
 import type { OnboardingStepComponentProps } from "../../../../../contextProviders/onboardingStepRegistry";
 import { useStepContext } from "../../../../../contextProviders/StepContextProvider";
-import { PreferencesApi, type Preferences } from "../../../../../pudu/generated";
+import { PreferencesApi, TtsApi, type Preferences } from "../../../../../pudu/generated";
 import HonkTtsSetupLayout from "./HonkTtsSetupLayout";
 import ImmersiveVoicesIntroLayout from "./ImmersiveVoicesIntroLayout";
 import InstallationsPathLayout from "./InstallationsPathLayout";
@@ -19,6 +19,7 @@ export default function MainLayout(props: OnboardingStepComponentProps) {
     const [autoStartOnLaunch, setAutoStartOnLaunch] = useState(true);
     const [isLoadingPreferences, setIsLoadingPreferences] = useState(true);
     const [isSavingPreferences, setIsSavingPreferences] = useState(false);
+    const [isInstallingTts, setIsInstallingTts] = useState(false);
 
     useEffect(() => {
         let isCancelled = false;
@@ -100,7 +101,7 @@ export default function MainLayout(props: OnboardingStepComponentProps) {
     };
 
     const persistInstallationsAndContinue = async () => {
-        if (isSavingPreferences) {
+        if (isSavingPreferences || isInstallingTts) {
             return;
         }
 
@@ -127,14 +128,13 @@ export default function MainLayout(props: OnboardingStepComponentProps) {
         }
     };
 
-    const persistTtsPreferencesAndComplete = async (enabled: boolean) => {
-        if (isSavingPreferences) {
-            return;
+    const persistTtsPreferences = async (enabled: boolean): Promise<boolean> => {
+        if (isSavingPreferences || isInstallingTts) {
+            return false;
         }
 
         if (preferences === null) {
-            await onComplete();
-            return;
+            return true;
         }
 
         const resolvedInstallationsPath = installationsPath.trim().length > 0
@@ -159,9 +159,47 @@ export default function MainLayout(props: OnboardingStepComponentProps) {
             },
         };
 
-        const wasSaved = await updatePreferences(updatedPreferences);
+        return updatePreferences(updatedPreferences);
+    };
+
+    const persistTtsPreferencesAndComplete = async (enabled: boolean) => {
+        const wasSaved = await persistTtsPreferences(enabled);
         if (wasSaved) {
             await onComplete();
+        }
+    };
+
+    const persistTtsPreferencesAndInstall = async () => {
+        const wasSaved = await persistTtsPreferences(true);
+        if (!wasSaved) {
+            return;
+        }
+
+        setIsInstallingTts(true);
+        const api = new TtsApi();
+
+        try {
+            const result = await api.install();
+            if (!result.success) {
+                showError({
+                    source: "frontend.onboarding.launcher-basics.install-tts",
+                    userMessage: "Could not install HonkTTS.",
+                    code: "ONBOARDING_TTS_INSTALL_FAILED",
+                    technicalDetails: result.error ?? "Unknown backend error.",
+                });
+                return;
+            }
+
+            await onComplete();
+        } catch (error: unknown) {
+            showError({
+                source: "frontend.onboarding.launcher-basics.install-tts",
+                userMessage: "Could not install HonkTTS.",
+                code: "ONBOARDING_TTS_INSTALL_EXCEPTION",
+                technicalDetails: error instanceof Error ? error.toString() : String(error),
+            });
+        } finally {
+            setIsInstallingTts(false);
         }
     };
 
@@ -178,7 +216,7 @@ export default function MainLayout(props: OnboardingStepComponentProps) {
             return (
                 <InstallationsPathLayout
                     installationsPath={installationsPath}
-                    isSubmitting={isSavingPreferences}
+                    isSubmitting={isSavingPreferences || isInstallingTts}
                     onInstallationsPathChange={setInstallationsPath}
                     onContinue={persistInstallationsAndContinue}
                 />
@@ -186,7 +224,7 @@ export default function MainLayout(props: OnboardingStepComponentProps) {
         case 1:
             return (
                 <ImmersiveVoicesIntroLayout
-                    isSubmitting={isSavingPreferences}
+                    isSubmitting={isSavingPreferences || isInstallingTts}
                     onEnable={goToNextStep}
                     onSkip={async () => {
                         await persistTtsPreferencesAndComplete(false);
@@ -198,12 +236,12 @@ export default function MainLayout(props: OnboardingStepComponentProps) {
                 <HonkTtsSetupLayout
                     installPath={ttsInstallPath}
                     autoStartOnLaunch={autoStartOnLaunch}
-                    isSubmitting={isSavingPreferences}
+                    isSubmitting={isSavingPreferences || isInstallingTts}
                     onInstallPathChange={setTtsInstallPath}
                     onAutoStartOnLaunchChange={setAutoStartOnLaunch}
                     onBack={goToPreviousStep}
                     onContinue={async () => {
-                        await persistTtsPreferencesAndComplete(true);
+                        await persistTtsPreferencesAndInstall();
                     }}
                 />
             );
@@ -211,7 +249,7 @@ export default function MainLayout(props: OnboardingStepComponentProps) {
             return (
                 <InstallationsPathLayout
                     installationsPath={installationsPath}
-                    isSubmitting={isSavingPreferences}
+                    isSubmitting={isSavingPreferences || isInstallingTts}
                     onInstallationsPathChange={setInstallationsPath}
                     onContinue={persistInstallationsAndContinue}
                 />

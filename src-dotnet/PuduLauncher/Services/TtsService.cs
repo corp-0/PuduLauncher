@@ -15,6 +15,7 @@ public class TtsService : ITtsService, IDisposable
     private readonly IEventPublisher _eventPublisher;
     private readonly IErrorDisplayServer _errorDisplayServer;
     private readonly ILogger<TtsService> _logger;
+    private readonly CancellationTokenSource _shutdownCts = new();
 
     private readonly SemaphoreSlim _operationLock = new(1, 1);
 
@@ -30,6 +31,7 @@ public class TtsService : ITtsService, IDisposable
         IPreferencesService preferencesService,
         IEventPublisher eventPublisher,
         IErrorDisplayServer errorDisplayServer,
+        IHostApplicationLifetime hostApplicationLifetime,
         ILogger<TtsService> logger)
     {
         _versionService = versionService;
@@ -39,6 +41,7 @@ public class TtsService : ITtsService, IDisposable
         _eventPublisher = eventPublisher;
         _errorDisplayServer = errorDisplayServer;
         _logger = logger;
+        hostApplicationLifetime.ApplicationStopping.Register(() => _shutdownCts.Cancel());
 
         var prefs = _preferencesService.GetPreferences();
         _manifest = _versionService.LoadManifest(prefs.Tts.InstallPath);
@@ -72,11 +75,13 @@ public class TtsService : ITtsService, IDisposable
 
     public async Task CheckForUpdatesAsync(CancellationToken ct = default)
     {
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _shutdownCts.Token);
+        CancellationToken operationCt = linkedCts.Token;
         await SetStatusAsync(TtsStatus.CheckingForUpdates);
 
         try
         {
-            var release = await _versionService.FetchLatestReleaseAsync(ct);
+            var release = await _versionService.FetchLatestReleaseAsync(operationCt);
             _latestVersion = release.TagName;
             _logger.LogInformation("Latest TTS version: {Version}, installed: {Installed}",
                 _latestVersion, _manifest?.InstallerVersion ?? "none");
@@ -93,7 +98,11 @@ public class TtsService : ITtsService, IDisposable
 
     public async Task InstallAsync(CancellationToken ct = default)
     {
-        if (!await _operationLock.WaitAsync(0, ct))
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _shutdownCts.Token);
+        CancellationToken operationCt = linkedCts.Token;
+        var installCompleted = false;
+
+        if (!await _operationLock.WaitAsync(0, operationCt))
         {
             _logger.LogWarning("TTS install already in progress");
             return;
@@ -106,12 +115,12 @@ public class TtsService : ITtsService, IDisposable
 
             if (_serverService.IsRunning)
             {
-                await _serverService.StopAsync(ct);
+                await _serverService.StopAsync(installPath, operationCt);
             }
 
             // Fetch latest release
             await SetStatusAsync(TtsStatus.CheckingForUpdates);
-            var release = await _versionService.FetchLatestReleaseAsync(ct);
+            var release = await _versionService.FetchLatestReleaseAsync(operationCt);
             _latestVersion = release.TagName;
 
             string assetName = _versionService.GetPlatformAssetName();
@@ -128,21 +137,30 @@ public class TtsService : ITtsService, IDisposable
             try
             {
                 string zipPath = Path.Combine(tempDir, "tts-installer.zip");
-                await _installService.DownloadInstallerAsync(asset.BrowserDownloadUrl, zipPath, ct);
+                await _installService.DownloadInstallerAsync(asset.BrowserDownloadUrl, zipPath, operationCt);
 
                 // Extract and run installer
                 string extractDir = Path.Combine(tempDir, "extracted");
                 ZipFile.ExtractToDirectory(zipPath, extractDir);
 
                 await SetStatusAsync(TtsStatus.Installing);
-                await _installService.RunInstallerAsync(extractDir, installPath, ct);
+                await _installService.RunInstallerAsync(extractDir, installPath, operationCt);
 
                 // Reload manifest
                 _manifest = _versionService.LoadManifest(installPath);
 
                 if (_manifest != null)
                 {
+                    installCompleted = true;
                     await SetStatusAsync(TtsStatus.Installed, "Installation complete");
+
+                    if (prefs.Tts.Enabled && prefs.Tts.AutoStartOnLaunch)
+                    {
+                        await SetStatusAsync(TtsStatus.ServerStarting, "Starting TTS server...");
+                        await _serverService.StartAsync(installPath, operationCt);
+                        await _serverService.WaitForHealthAsync(operationCt);
+                        await SetStatusAsync(TtsStatus.ServerRunning, "TTS server is running");
+                    }
                 }
                 else
                 {
@@ -157,13 +175,22 @@ public class TtsService : ITtsService, IDisposable
         }
         catch (OperationCanceledException)
         {
-            await SetStatusAsync(TtsStatus.NotInstalled, "Installation cancelled");
+            await SetStatusAsync(
+                installCompleted ? TtsStatus.Installed : TtsStatus.NotInstalled,
+                installCompleted ? "Server start cancelled" : "Installation cancelled");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "TTS installation failed");
+            _logger.LogError(ex, installCompleted
+                ? "TTS auto-start failed after installation"
+                : "TTS installation failed");
             await SetStatusAsync(TtsStatus.Error, ex.Message);
-            await _errorDisplayServer.ShowExceptionAsync(ex, "TTS", "TTS installation failed");
+            await _errorDisplayServer.ShowExceptionAsync(
+                ex,
+                "TTS",
+                installCompleted
+                    ? "TTS installation completed but auto-start failed"
+                    : "TTS installation failed");
         }
         finally
         {
@@ -173,7 +200,10 @@ public class TtsService : ITtsService, IDisposable
 
     public async Task UninstallAsync(CancellationToken ct = default)
     {
-        if (!await _operationLock.WaitAsync(0, ct))
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _shutdownCts.Token);
+        CancellationToken operationCt = linkedCts.Token;
+
+        if (!await _operationLock.WaitAsync(0, operationCt))
         {
             _logger.LogWarning("TTS operation already in progress");
             return;
@@ -181,16 +211,12 @@ public class TtsService : ITtsService, IDisposable
 
         try
         {
-            if (_serverService.IsRunning)
-            {
-                await _serverService.StopAsync(ct);
-            }
-
             var prefs = _preferencesService.GetPreferences();
+            await _serverService.StopAsync(prefs.Tts.InstallPath, operationCt);
 
             if (Directory.Exists(prefs.Tts.InstallPath))
             {
-                Directory.Delete(prefs.Tts.InstallPath, recursive: true);
+                await DeleteInstallDirectoryWithRetriesAsync(prefs.Tts.InstallPath, operationCt);
                 _logger.LogInformation("Deleted TTS installation at {Path}", prefs.Tts.InstallPath);
             }
 
@@ -212,7 +238,10 @@ public class TtsService : ITtsService, IDisposable
 
     public async Task StartServerAsync(CancellationToken ct = default)
     {
-        if (!await _operationLock.WaitAsync(0, ct))
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _shutdownCts.Token);
+        CancellationToken operationCt = linkedCts.Token;
+
+        if (!await _operationLock.WaitAsync(0, operationCt))
         {
             _logger.LogWarning("TTS operation already in progress");
             return;
@@ -228,8 +257,8 @@ public class TtsService : ITtsService, IDisposable
             var prefs = _preferencesService.GetPreferences();
 
             await SetStatusAsync(TtsStatus.ServerStarting, "Starting TTS server...");
-            await _serverService.StartAsync(prefs.Tts.InstallPath, ct);
-            await _serverService.WaitForHealthAsync(ct);
+            await _serverService.StartAsync(prefs.Tts.InstallPath, operationCt);
+            await _serverService.WaitForHealthAsync(operationCt);
             await SetStatusAsync(TtsStatus.ServerRunning, "TTS server is running");
         }
         catch (OperationCanceledException)
@@ -250,7 +279,10 @@ public class TtsService : ITtsService, IDisposable
 
     public async Task StopServerAsync(CancellationToken ct = default)
     {
-        if (!await _operationLock.WaitAsync(0, ct))
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _shutdownCts.Token);
+        CancellationToken operationCt = linkedCts.Token;
+
+        if (!await _operationLock.WaitAsync(0, operationCt))
         {
             _logger.LogWarning("TTS operation already in progress");
             return;
@@ -258,7 +290,8 @@ public class TtsService : ITtsService, IDisposable
 
         try
         {
-            await _serverService.StopAsync(ct);
+            var prefs = _preferencesService.GetPreferences();
+            await _serverService.StopAsync(prefs.Tts.InstallPath, operationCt);
             await SetStatusAsync(TtsStatus.ServerStopped, "TTS server stopped");
         }
         catch (Exception ex)
@@ -284,8 +317,38 @@ public class TtsService : ITtsService, IDisposable
         });
     }
 
+    private async Task DeleteInstallDirectoryWithRetriesAsync(string installPath, CancellationToken ct)
+    {
+        const int maxAttempts = 5;
+        const int retryDelayMs = 300;
+
+        for (int attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            try
+            {
+                Directory.Delete(installPath, recursive: true);
+                return;
+            }
+            catch (Exception ex) when (attempt < maxAttempts &&
+                                       (ex is IOException || ex is UnauthorizedAccessException))
+            {
+                _logger.LogWarning(ex,
+                    "Failed to delete TTS install directory on attempt {Attempt}/{MaxAttempts}. Retrying...",
+                    attempt, maxAttempts);
+                await _serverService.StopAsync(installPath, ct);
+                await Task.Delay(retryDelayMs, ct);
+            }
+        }
+
+        Directory.Delete(installPath, recursive: true);
+    }
+
     public void Dispose()
     {
+        _shutdownCts.Cancel();
+        _shutdownCts.Dispose();
         _serverService.Dispose();
         _operationLock.Dispose();
     }

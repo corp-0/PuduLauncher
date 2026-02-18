@@ -1,5 +1,5 @@
 import { createContext, type PropsWithChildren, useContext, useEffect, useRef, useState } from "react";
-import { Alert, Modal, ModalDialog, Stack, Typography } from "@mui/joy";
+import { Alert, Box, Modal, ModalDialog, Stack, Typography } from "@mui/joy";
 import { OnboardingApi, type OnboardingStep } from "../pudu/generated";
 import { ErrorContext } from "./ErrorContextProvider";
 import { onboardingStepRegistry } from "./onboardingStepRegistry";
@@ -219,7 +219,11 @@ export function OnboardingContextProvider(props: OnboardingContextProviderProps)
 
     return (
         <OnboardingContext.Provider value={value}>
-            {children}
+            {isLoading && (
+                <Box sx={{ width: "100%", height: "100%", backgroundColor: "background.body" }} />
+            )}
+
+            {!isLoading && children}
 
             <Modal open={!isLoading && activeStep !== null}>
                 <ModalDialog layout="fullscreen">
