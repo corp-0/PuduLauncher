@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: setup node
         uses: actions/setup-node@v4
@@ -19,8 +21,16 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
+      - name: setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
       - name: install dependencies
         run: npm ci
+
+      - name: produce auto generated code
+        run: npm run generate-ts
 
       - name: run frontend lint
         run: npm run lint
