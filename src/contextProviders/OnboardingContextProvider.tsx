@@ -1,8 +1,8 @@
-import { createContext, type PropsWithChildren, useContext, useEffect, useRef, useState } from "react";
-import { Alert, Box, Modal, ModalDialog, Stack, Typography } from "@mui/joy";
-import { OnboardingApi, type OnboardingStep } from "../pudu/generated";
-import { ErrorContext } from "./ErrorContextProvider";
-import { onboardingStepRegistry } from "./onboardingStepRegistry";
+import {createContext, type PropsWithChildren, useContext, useEffect, useRef, useState} from "react";
+import {Alert, Box, Modal, ModalDialog, Stack, Typography} from "@mui/joy";
+import {OnboardingApi, type OnboardingStep} from "../pudu/generated";
+import {ErrorContext} from "./ErrorContextProvider";
+import {onboardingStepRegistry} from "./onboardingStepRegistry";
 import PuduStepper from "../components/organisms/common/PuduStepper";
 
 interface OnboardingContextValue {
@@ -31,9 +31,10 @@ export interface OnboardingContextProviderProps extends PropsWithChildren {
 }
 
 export function OnboardingContextProvider(props: OnboardingContextProviderProps) {
-    const { children, createApi, errorReporter } = props;
+    const {children, createApi, errorReporter} = props;
     const errorContext = useContext(ErrorContext);
-    const showError = errorReporter ?? errorContext?.showError ?? (() => { });
+    const showError = errorReporter ?? errorContext?.showError ?? (() => {
+    });
     const buildApi = createApi ?? (() => new OnboardingApi());
     const seenStepIdsRef = useRef(new Set<string>());
 
@@ -170,7 +171,7 @@ export function OnboardingContextProvider(props: OnboardingContextProviderProps)
     };
 
     const missingComponentReferenceWarning = () => (
-        <Stack spacing={2} sx={{ maxWidth: 720, width: "100%" }}>
+        <Stack spacing={2} sx={{maxWidth: 720, width: "100%"}}>
             <Typography level="h3">
                 {activeStep?.title ?? "Onboarding step"}
             </Typography>
@@ -197,7 +198,7 @@ export function OnboardingContextProvider(props: OnboardingContextProviderProps)
     const maxSteps = Math.max(maxStepOrder + 1, allSteps.length, 1);
 
     const stepLabels = Array.from(
-        { length: maxSteps },
+        {length: maxSteps},
         (_, stepNumber) => `Step ${stepNumber + 1}`,
     );
 
@@ -220,14 +221,15 @@ export function OnboardingContextProvider(props: OnboardingContextProviderProps)
     return (
         <OnboardingContext.Provider value={value}>
             {isLoading && (
-                <Box sx={{ width: "100%", height: "100%", backgroundColor: "background.body" }} />
+                <Box sx={{width: "100%", height: "100%", backgroundColor: "background.body"}}/>
             )}
 
             {!isLoading && children}
 
-            <Modal open={!isLoading && activeStep !== null}>
+            <Modal open={!isLoading && activeStep !== null} sx={{zIndex: 1300}}>
                 <ModalDialog layout="fullscreen">
-                    <Stack spacing={2} justifyContent="flex-start" alignItems="center" sx={{ width: "100%", height: "100%" }}>
+                    <Stack spacing={2} justifyContent="flex-start" alignItems="center"
+                           sx={{width: "100%", height: "100%"}}>
                         {maxSteps > 1 && (
                             <PuduStepper
                                 maxSteps={maxSteps}
@@ -235,7 +237,7 @@ export function OnboardingContextProvider(props: OnboardingContextProviderProps)
                                 stepLabels={stepLabels}
                             />
                         )}
-                        <Stack sx={{ width: "100%", height: "100%" }}>
+                        <Stack sx={{width: "100%", height: "100%"}}>
                             {ActiveStepComponent ? (
                                 <ActiveStepComponent
                                     step={activeStep!}
