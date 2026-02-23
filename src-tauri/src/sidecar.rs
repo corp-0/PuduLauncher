@@ -15,7 +15,8 @@ impl SidecarManager {
     }
 
     /// Starts the .NET sidecar process and returns the port it bound to.
-    /// The sidecar prints `SIDECAR_PORT:<port>` to stdout once ready.
+    /// The sidecar prints `SIDECAR_PORT:<port>` to stdout repeatedly until we
+    /// acknowledge via stdin, forming a reliable handshake.
     pub async fn start(&self, app: &AppHandle) -> Result<u16, String> {
         let sidecar_command = app
             .shell()
@@ -28,17 +29,21 @@ impl SidecarManager {
 
         *self.process.lock().unwrap() = Some(child);
 
-        let timeout = tokio::time::Duration::from_secs(10);
+        let timeout = tokio::time::Duration::from_secs(30);
         let result = tokio::time::timeout(timeout, Self::read_port(rx)).await;
 
         match result {
             Ok(Ok((port, rx))) => {
+                // Acknowledge the port so the sidecar stops repeating it
+                if let Some(ref mut child) = *self.process.lock().unwrap() {
+                    let _ = child.write(b"ACK\n");
+                }
                 tokio::spawn(Self::forward_output(rx));
                 log::info!(target: "PuduTauri", "Sidecar started on port {}", port);
                 Ok(port)
             }
             Ok(Err(e)) => Err(e),
-            Err(_) => Err("Sidecar failed to report port within 10 seconds".to_string()),
+            Err(_) => Err("Sidecar failed to report port within 30 seconds".to_string()),
         }
     }
 

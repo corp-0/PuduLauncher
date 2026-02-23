@@ -44,7 +44,6 @@ try
     // Force initialization so stale installations are reconciled at startup.
     app.Services.GetRequiredService<IInstallationService>();
 
-
     await app.StartAsSidecarAsync();
 }
 catch (Exception ex)

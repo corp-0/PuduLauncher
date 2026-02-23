@@ -15,7 +15,7 @@ public static class AppConfiguration
     {
         app.UseCors();
         app.UseWebSockets();
-        
+
         app.MapGet("/events", async (HttpContext context, IEventPublisher eventPublisher) =>
         {
             if (!context.WebSockets.IsWebSocketRequest)
@@ -63,10 +63,16 @@ public static class AppConfiguration
         var addresses = server.Features.Get<IServerAddressesFeature>();
         string address = addresses!.Addresses.First();
         int port = new Uri(address).Port;
-
-        // This line is parsed by sidecar.rs to discover the port
-        Console.Out.WriteLine($"SIDECAR_PORT:{port}");
-        Console.Out.Flush();
+        
+        // Keep printing SIDECAR_PORT until Rust acknowledges via stdin.
+        // This handshake ensures port discovery succeeds regardless of startup timing.
+        var ackTask = Task.Run(() => Console.In.ReadLine());
+        while (!ackTask.IsCompleted)
+        {
+            await Console.Out.WriteLineAsync($"SIDECAR_PORT:{port}");
+            await Console.Out.FlushAsync();
+            await Task.Delay(100);
+        }
 
         app.Logger.LogInformation("PuduLauncher Sidecar started on port {Port}", port);
 
