@@ -35,78 +35,28 @@ public class DiscordPresenceService(
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
+        if (!IsEnabled()) return Task.CompletedTask;
+
         if (string.IsNullOrWhiteSpace(Discord.ApplicationId))
         {
-            logger.LogInformation(
-                "Discord rich presence disabled because Discord.ApplicationId is empty.");
+            logger.LogInformation("Discord rich presence disabled because Discord.ApplicationId is empty");
             return Task.CompletedTask;
         }
 
-        try
-        {
-            var client = new DiscordRpcClient(Discord.ApplicationId, logger);
-
-            if (!client.Initialize())
-            {
-                logger.LogInformation("Discord rich presence unavailable. Discord may not be running.");
-                client.Dispose();
-                return Task.CompletedTask;
-            }
-
-            lock (_lock)
-            {
-                _client = client;
-            }
-
-            SetLauncherState();
-            logger.LogInformation("Discord rich presence initialized.");
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to initialize Discord rich presence.");
-        }
-
+        TryConnect();
         return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        StopServerTracking();
-        lock (_lock)
-        {
-            _activeGameSessionStartedAtUtc = null;
-        }
-
-        DiscordRpcClient? client;
-        lock (_lock)
-        {
-            client = _client;
-            _client = null;
-        }
-
-        if (client == null) return Task.CompletedTask;
-
-        try
-        {
-            if (client.IsInitialized)
-            {
-                client.ClearPresence();
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogDebug(ex, "Failed while clearing Discord rich presence during shutdown.");
-        }
-        finally
-        {
-            client.Dispose();
-        }
-
+        Disconnect();
         return Task.CompletedTask;
     }
 
     public void SetLauncherState()
     {
+        EnsureClientMatchesPreference();
+
         StopServerTracking();
         lock (_lock)
         {
@@ -123,6 +73,8 @@ public class DiscordPresenceService(
 
     public void SetInServerState(ServerPresenceInfo info)
     {
+        EnsureClientMatchesPreference();
+
         string resolvedState = BuildInServerState(info.ForkName);
         string resolvedDetails = BuildInServerDetails(info.ServerName, info.ServerIp, info.ServerPort);
         string resolvedLargeImageText = BuildLargeImageText(info.GameMode, info.CurrentMap);
@@ -137,6 +89,8 @@ public class DiscordPresenceService(
 
     public void SetInBuildState(BuildPresenceInfo info)
     {
+        EnsureClientMatchesPreference();
+
         string resolvedState = BuildInServerState(info.ForkName);
         string resolvedDetails = BuildInBuildDetails(info.BuildVersion);
 
@@ -150,6 +104,8 @@ public class DiscordPresenceService(
 
     public void StartGameSession(GameSessionPresenceInfo info)
     {
+        EnsureClientMatchesPreference();
+
         StopServerTracking();
         lock (_lock)
         {
@@ -162,11 +118,7 @@ public class DiscordPresenceService(
             return;
         }
 
-        var normalizedSessionInfo = new GameSessionPresenceInfo(
-            info.ForkName,
-            info.BuildVersion,
-            info.ServerIp.Trim(),
-            info.ServerPort);
+        GameSessionPresenceInfo normalizedSessionInfo = info with { ServerIp = info.ServerIp.Trim() };
 
         var cts = new CancellationTokenSource();
         lock (_lock)
@@ -174,7 +126,99 @@ public class DiscordPresenceService(
             _serverTrackingCts = cts;
         }
 
-        _ = Task.Run(() => TrackServerPresenceAsync(normalizedSessionInfo, cts.Token));
+        _ = Task.Run(() => TrackServerPresenceAsync(normalizedSessionInfo, cts.Token), cts.Token);
+    }
+
+    private bool IsEnabled() => preferencesService.GetPreferences().Launcher.EnableDiscordRichPresence;
+
+    private void EnsureClientMatchesPreference()
+    {
+        if (string.IsNullOrWhiteSpace(Discord.ApplicationId)) return;
+
+        bool enabled = IsEnabled();
+        bool connected;
+        lock (_lock)
+        {
+            connected = _client != null;
+        }
+
+        if (enabled && !connected)
+        {
+            TryConnect();
+        }
+        else if (!enabled && connected)
+        {
+            Disconnect();
+        }
+    }
+
+    private void TryConnect()
+    {
+        try
+        {
+            var client = new DiscordRpcClient(Discord.ApplicationId, -1, new DebugOnlyDiscordLogger(logger));
+
+            if (!client.Initialize())
+            {
+                logger.LogInformation("Discord rich presence unavailable. Discord may not be running");
+                client.Dispose();
+                return;
+            }
+
+            lock (_lock)
+            {
+                _client = client;
+            }
+
+            SetPresenceSafe(
+                details: GetRandomLauncherDetails(),
+                state: "In launcher",
+                largeImageText: null,
+                randomizeLargeImage: false,
+                includeTimestamp: false);
+
+            logger.LogInformation("Discord rich presence initialized");
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to initialize Discord rich presence");
+        }
+    }
+
+    private void Disconnect()
+    {
+        StopServerTracking();
+        lock (_lock)
+        {
+            _activeGameSessionStartedAtUtc = null;
+        }
+
+        DiscordRpcClient? client;
+        lock (_lock)
+        {
+            client = _client;
+            _client = null;
+        }
+
+        if (client == null) return;
+
+        try
+        {
+            if (client.IsInitialized)
+            {
+                client.ClearPresence();
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Failed while clearing Discord rich presence during disconnect");
+        }
+        finally
+        {
+            client.Dispose();
+        }
+
+        logger.LogInformation("Discord rich presence disconnected");
     }
 
     private void SetPresenceSafe(string details, string state, string? largeImageText, bool randomizeLargeImage, bool includeTimestamp)
@@ -185,7 +229,7 @@ public class DiscordPresenceService(
             client = _client;
         }
 
-        if (client == null || !client.IsInitialized) return;
+        if (client is not { IsInitialized: true }) return;
 
         try
         {
@@ -210,7 +254,7 @@ public class DiscordPresenceService(
         }
         catch (Exception ex)
         {
-            logger.LogDebug(ex, "Failed to set Discord rich presence state.");
+            logger.LogDebug(ex, "Failed to set Discord rich presence state");
         }
     }
 
@@ -248,12 +292,14 @@ public class DiscordPresenceService(
         }
         catch (Exception ex)
         {
+#pragma warning disable CA1873
             logger.LogDebug(
                 ex,
-                "Failed while tracking server presence for Discord ({ServerIp}:{ServerPort}).",
+                "Failed while tracking server presence for Discord ({ServerIp}:{ServerPort})",
                 sessionInfo.ServerIp,
                 sessionInfo.ServerPort);
             SetInBuildState(new BuildPresenceInfo(sessionInfo.ForkName, sessionInfo.BuildVersion));
+#pragma warning restore CA1873
         }
     }
 
@@ -273,7 +319,7 @@ public class DiscordPresenceService(
             {
                 logger.LogDebug(
                     ex,
-                    "Failed initial server lookup for Discord presence tracking ({ServerIp}:{ServerPort}). Retrying.",
+                    "Failed initial server lookup for Discord presence tracking ({ServerIp}:{ServerPort}). Retrying",
                     serverIp,
                     serverPort);
 
@@ -299,7 +345,7 @@ public class DiscordPresenceService(
         {
             logger.LogDebug(
                 ex,
-                "Failed to query server list for Discord presence tracking ({ServerIp}:{ServerPort}).",
+                "Failed to query server list for Discord presence tracking ({ServerIp}:{ServerPort})",
                 serverIp,
                 serverPort);
             return null;
@@ -336,7 +382,7 @@ public class DiscordPresenceService(
         {
             logger.LogDebug(
                 ex,
-                "Failed to read server tracking interval for Discord presence. Using default {DefaultServerTrackingIntervalMs}ms.",
+                "Failed to read server tracking interval for Discord presence. Using default {DefaultServerTrackingIntervalMs}ms",
                 DefaultServerTrackingIntervalMs);
             return DefaultServerTrackingIntervalMs;
         }
@@ -444,5 +490,32 @@ public class DiscordPresenceService(
     private static string GetRandomLauncherDetails()
     {
         return LauncherDetailsVariants[Random.Shared.Next(LauncherDetailsVariants.Length)];
+    }
+
+    /// <summary>
+    /// Wraps a Microsoft.Extensions.Logging.ILogger to route all Discord RPC library
+    /// logs to Debug level, preventing noisy connection-retry spam in the terminal.
+    /// </summary>
+    private sealed class DebugOnlyDiscordLogger(Microsoft.Extensions.Logging.ILogger msLogger) : DiscordRPC.Logging.ILogger
+    {
+        public DiscordRPC.Logging.LogLevel Level { get; set; } = DiscordRPC.Logging.LogLevel.Trace;
+
+        public void Trace(string message, params object[] args) =>
+            msLogger.LogDebug("[DiscordRPC:Trace] {Message}", SafeFormat(message, args));
+
+        public void Info(string message, params object[] args) =>
+            msLogger.LogDebug("[DiscordRPC:Info] {Message}", SafeFormat(message, args));
+
+        public void Warning(string message, params object[] args) =>
+            msLogger.LogDebug("[DiscordRPC:Warn] {Message}", SafeFormat(message, args));
+
+        public void Error(string message, params object[] args) =>
+            msLogger.LogDebug("[DiscordRPC:Error] {Message}", SafeFormat(message, args));
+
+        private static string SafeFormat(string message, object[] args)
+        {
+            try { return args.Length > 0 ? string.Format(message, args) : message; }
+            catch { return message; }
+        }
     }
 }
