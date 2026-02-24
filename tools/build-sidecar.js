@@ -67,7 +67,7 @@ try {
     execSync(`pkill -f ${sidecarName} 2>/dev/null`, { stdio: "ignore" });
   }
 } catch {
-  // No process to kill — that's fine
+  // No process to kill, that's fine
 }
 
 const cmd = publishArgs.join(" ");

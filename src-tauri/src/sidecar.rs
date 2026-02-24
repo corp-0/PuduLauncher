@@ -134,7 +134,7 @@ fn forward_dotnet_line(line: &str) {
     } else if let Some(rest) = trimmed.strip_prefix("[VRB] ") {
         log::trace!(target: "PuduBackend", "{}", rest);
     } else {
-        // No recognized prefix — forward as info
+        // No recognized prefix, forward as info
         log::info!(target: "PuduBackend", "{}", trimmed);
     }
 }

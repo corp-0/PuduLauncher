@@ -43,7 +43,7 @@ async function discoverPort(): Promise<number> {
     cachedPort = port;
     return port;
   } catch {
-    // Not ready yet — fall through to event listener.
+    // Not ready yet fall through to event listener.
   }
 
   return new Promise<number>((resolve, reject) => {

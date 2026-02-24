@@ -150,7 +150,7 @@ public class DownloadService(
                 if (!scanPassed)
                 {
                     download.State = DownloadState.ScanFailed;
-                    download.ErrorMessage = "Security scan failed — assemblies contain disallowed code";
+                    download.ErrorMessage = "Security scan faile. Assemblies contain disallowed code";
                     await PublishStateChangedAsync(download);
 
                     CleanupDirectory(download.InstallPath);

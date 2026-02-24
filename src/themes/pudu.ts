@@ -1,11 +1,11 @@
-import {extendTheme} from "@mui/joy/styles";
-import {CSSProperties} from "react";
+import { extendTheme } from "@mui/joy/styles";
+import { CSSProperties } from "react";
 
 const puduTheme = extendTheme({
     colorSchemes: {
         dark: {
             palette: {
-                // Warm reddish-brown — the pudu's signature fur color
+                // Warm reddish-brown the pudu's signature fur color
                 primary: {
                     50: "#fdf5f0",
                     100: "#fae7da",
@@ -18,7 +18,7 @@ const puduTheme = extendTheme({
                     800: "#72381d",
                     900: "#542a17",
                 },
-                // Warm taupe — cozy dark-mode neutrals
+                // Warm taupe cozy dark-mode neutrals
                 neutral: {
                     50: "#f8f5f2",
                     100: "#f0eae4",
@@ -31,7 +31,7 @@ const puduTheme = extendTheme({
                     800: "#3d342c",
                     900: "#261f1a",
                 },
-                // Muted rosewood — warm, not aggressive
+                // Muted rosewood warm, not aggressive
                 danger: {
                     50: "#fdf2f2",
                     100: "#fbe2e2",
@@ -44,7 +44,7 @@ const puduTheme = extendTheme({
                     800: "#722226",
                     900: "#541a1e",
                 },
-                // Forest moss green — where pudus roam
+                // Forest moss green where pudus roam
                 success: {
                     50: "#f1f8f0",
                     100: "#def0db",
@@ -57,7 +57,7 @@ const puduTheme = extendTheme({
                     800: "#21491d",
                     900: "#193517",
                 },
-                // Golden honey amber — autumn forest floor
+                // Golden honey amber autumn forest floor
                 warning: {
                     50: "#fefaf0",
                     100: "#fdf2d6",
@@ -93,11 +93,11 @@ const puduTheme = extendTheme({
 });
 
 export const puduScrollbarStyles: Record<string, CSSProperties> = {
-    "*": {scrollbarWidth: "thin", scrollbarColor: "#8d7d6d #241e1a"},
-    "*::-webkit-scrollbar": {width: "12px", height: "12px"},
-    "*::-webkit-scrollbar-track": {background: "#241e1a"},
-    "*::-webkit-scrollbar-thumb": {backgroundColor: "#8d7d6d", border: "2px solid #241e1a", borderRadius: "8px"},
-    "*::-webkit-scrollbar-thumb:hover": {backgroundColor: "#a99a8a"},
+    "*": { scrollbarWidth: "thin", scrollbarColor: "#8d7d6d #241e1a" },
+    "*::-webkit-scrollbar": { width: "12px", height: "12px" },
+    "*::-webkit-scrollbar-track": { background: "#241e1a" },
+    "*::-webkit-scrollbar-thumb": { backgroundColor: "#8d7d6d", border: "2px solid #241e1a", borderRadius: "8px" },
+    "*::-webkit-scrollbar-thumb:hover": { backgroundColor: "#a99a8a" },
 };
 
 export default puduTheme;

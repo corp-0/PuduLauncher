@@ -1,5 +1,5 @@
-import {extendTheme} from "@mui/joy/styles";
-import {CSSProperties} from "react";
+import { extendTheme } from "@mui/joy/styles";
+import { CSSProperties } from "react";
 
 // Based on the Avalonia StationHub color palette:
 // Primary accent: #0078a3 (teal/cyan)
@@ -11,7 +11,7 @@ const unitystationClassicTheme = extendTheme({
     colorSchemes: {
         dark: {
             palette: {
-                // Teal/cyan accent — the StationHub signature color
+                // Teal/cyan accent the StationHub signature color
                 primary: {
                     50: "#e0f4fb",
                     100: "#b3e3f5",
@@ -24,7 +24,7 @@ const unitystationClassicTheme = extendTheme({
                     800: "#003c53",
                     900: "#002738",
                 },
-                // Cool blue-gray — derived from the Primary1-5 scale
+                // Cool blue-gray derived from the Primary1-5 scale
                 neutral: {
                     50: "#e4eaf0",
                     100: "#c5d0dc",
@@ -37,7 +37,7 @@ const unitystationClassicTheme = extendTheme({
                     800: "#132736",
                     900: "#0a1a26",
                 },
-                // Muted red — from the #AA4444 error color
+                // Muted red from the #AA4444 error color
                 danger: {
                     50: "#fdf2f2",
                     100: "#f9dede",
@@ -50,7 +50,7 @@ const unitystationClassicTheme = extendTheme({
                     800: "#562020",
                     900: "#3d1616",
                 },
-                // Cool green — complementing the teal primary
+                // Cool green complementing the teal primary
                 success: {
                     50: "#e6f5ec",
                     100: "#c3e8d1",
@@ -63,7 +63,7 @@ const unitystationClassicTheme = extendTheme({
                     800: "#0e4a29",
                     900: "#0a331d",
                 },
-                // Amber/gold — warm accent for warnings
+                // Amber/gold warm accent for warnings
                 warning: {
                     50: "#fef8eb",
                     100: "#fceccc",
@@ -104,11 +104,11 @@ const unitystationClassicTheme = extendTheme({
 });
 
 export const unitystationClassicScrollbarStyles: Record<string, CSSProperties> = {
-    "*": {scrollbarWidth: "thin", scrollbarColor: "#38729c #0d1c29"},
-    "*::-webkit-scrollbar": {width: "12px", height: "12px"},
-    "*::-webkit-scrollbar-track": {background: "#0d1c29"},
-    "*::-webkit-scrollbar-thumb": {backgroundColor: "#38729c", border: "2px solid #0d1c29", borderRadius: "8px"},
-    "*::-webkit-scrollbar-thumb:hover": {backgroundColor: "#4fa1db"},
+    "*": { scrollbarWidth: "thin", scrollbarColor: "#38729c #0d1c29" },
+    "*::-webkit-scrollbar": { width: "12px", height: "12px" },
+    "*::-webkit-scrollbar-track": { background: "#0d1c29" },
+    "*::-webkit-scrollbar-thumb": { backgroundColor: "#38729c", border: "2px solid #0d1c29", borderRadius: "8px" },
+    "*::-webkit-scrollbar-thumb:hover": { backgroundColor: "#4fa1db" },
 };
 
 export default unitystationClassicTheme;

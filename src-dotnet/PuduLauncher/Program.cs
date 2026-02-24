@@ -34,15 +34,15 @@ try
     builder.Services.AddSingleton<ITtsServerService, TtsServerService>();
     builder.Services.AddSingleton<ITtsService, TtsService>();
     builder.Services.AddSingleton<IOnboardingService, OnboardingService>();
+    builder.Services.AddSingleton<IIpcService, IpcService>();
 
     // ── App ───────────────────────────────────────────
     WebApplication app = builder.Build();
 
     app.MapPuduInfrastructure();
     app.MapPuduEndpoints(); // Generated
-
-    // Force initialization so stale installations are reconciled at startup.
     app.Services.GetRequiredService<IInstallationService>();
+    app.Services.GetRequiredService<IIpcService>().Start();
 
     await app.StartAsSidecarAsync();
 }
