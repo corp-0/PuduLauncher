@@ -59,7 +59,7 @@ export default function IpcPermissionPage() {
 
         const el = rootRef.current;
 
-        // MUI Joy injects styles asynchronously — a ResizeObserver catches the
+        // MUI Joy injects styles asynchronously a ResizeObserver catches the
         // final layout regardless of how many paints it takes.
         const ro = new ResizeObserver(() => {
             const height = el.scrollHeight;
@@ -112,66 +112,66 @@ export default function IpcPermissionPage() {
             <CssBaseline />
             <GlobalStyles styles={themeScrollbarRegistry[themeId]} />
             <Box ref={rootRef}>
-            <Box
-                onMouseDown={handleDrag}
-                sx={{
-                    cursor: "grab",
-                    userSelect: "none",
-                }}
-            >
-                <Alert
-                    color={isDangerous ? "danger" : "warning"}
-                    variant="soft"
+                <Box
+                    onMouseDown={handleDrag}
+                    sx={{
+                        cursor: "grab",
+                        userSelect: "none",
+                    }}
                 >
-                    Game Permission Request
-                </Alert>
-            </Box>
-            <Stack spacing={2} sx={{ p: 3, boxSizing: "border-box" }}>
-                <Typography level="body-md">
-                    {description}
-                </Typography>
-
-                {justification && (
-                    <Stack spacing={0.5}>
-                        <Typography level="body-sm" fontWeight="lg">
-                            Justification from the game:
-                        </Typography>
-                        <Typography level="body-sm" sx={{
-                            p: 1.5,
-                            borderRadius: "sm",
-                            bgcolor: "background.level1",
-                            fontStyle: "italic",
-                        }}>
-                            {justification}
-                        </Typography>
-                    </Stack>
-                )}
-
-                {isDangerous && (
-                    <Alert color="danger" variant="outlined" size="sm">
-                        The text above was provided by the game, not by PuduLauncher.
-                        Treat it with caution.
+                    <Alert
+                        color={isDangerous ? "danger" : "warning"}
+                        variant="soft"
+                    >
+                        Game Permission Request
                     </Alert>
-                )}
+                </Box>
+                <Stack spacing={2} sx={{ p: 3, boxSizing: "border-box" }}>
+                    <Typography level="body-md">
+                        {description}
+                    </Typography>
 
-                <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ mt: "auto" }}>
-                    <Button
-                        variant="outlined"
-                        color="neutral"
-                        disabled={responding}
-                        onClick={() => handleRespond(false)}
-                    >
-                        Deny
-                    </Button>
-                    <Button
-                        color={isDangerous ? "danger" : "primary"}
-                        disabled={responding}
-                        onClick={() => handleRespond(true)}
-                    >
-                        Allow
-                    </Button>
+                    {justification && (
+                        <Stack spacing={0.5}>
+                            <Typography level="body-sm" fontWeight="lg">
+                                Justification from the game:
+                            </Typography>
+                            <Typography level="body-sm" sx={{
+                                p: 1.5,
+                                borderRadius: "sm",
+                                bgcolor: "background.level1",
+                                fontStyle: "italic",
+                            }}>
+                                {justification}
+                            </Typography>
+                        </Stack>
+                    )}
+
+                    {isDangerous && (
+                        <Alert color="danger" variant="outlined" size="sm">
+                            The text above was provided by the game, not by PuduLauncher.
+                            Treat it with caution.
+                        </Alert>
+                    )}
+
+                    <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ mt: "auto" }}>
+                        <Button
+                            variant="outlined"
+                            color="neutral"
+                            disabled={responding}
+                            onClick={() => handleRespond(false)}
+                        >
+                            Deny
+                        </Button>
+                        <Button
+                            color={isDangerous ? "danger" : "primary"}
+                            disabled={responding}
+                            onClick={() => handleRespond(true)}
+                        >
+                            Allow
+                        </Button>
+                    </Stack>
                 </Stack>
-            </Stack>
             </Box>
         </CssVarsProvider>
     );

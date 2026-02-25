@@ -1,7 +1,10 @@
-﻿import NewsLayout from "../layouts/NewsLayout.tsx";
+import NewsLayout from "../layouts/NewsLayout.tsx";
+import { NewsContextProvider } from "../../contextProviders/NewsContextProvider";
 
 export default function NewsPage() {
     return (
-        <NewsLayout/>
+        <NewsContextProvider>
+            <NewsLayout />
+        </NewsContextProvider>
     );
 }

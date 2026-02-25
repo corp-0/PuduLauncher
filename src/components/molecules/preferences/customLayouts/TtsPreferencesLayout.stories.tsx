@@ -8,6 +8,7 @@ const basePreferences: Preferences = {
     version: 1,
     launcher: {
         theme: "Pudu",
+        enableDiscordRichPresence: true,
     },
     servers: {
         serverListApi: "https://api.example.com/servers",
