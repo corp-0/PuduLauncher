@@ -17,6 +17,8 @@
         }
       ]
     },
+    "updater:default",
+    "process:default",
     {
       "identifier": "shell:allow-execute",
       "allow": [

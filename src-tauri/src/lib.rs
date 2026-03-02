@@ -94,9 +94,14 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .manage(SidecarPort(Mutex::new(None)))
         .manage(SidecarManager::new())
         .setup(|app| {
+            let version = app.package_info().version.to_string();
+            log::info!(target: "PuduTauri", "PuduLauncher v{}", version);
+
             let app_handle = app.handle().clone();
 
             tauri::async_runtime::spawn(async move {

@@ -16,6 +16,7 @@ import { TtsInstallerContextProvider } from "./contextProviders/TtsInstallerCont
 import { IpcContextProvider } from "./contextProviders/IpcContextProvider";
 import IpcPermissionPage from "./components/pages/IpcPermissionPage.tsx";
 import NewsPage from "./components/pages/NewsPage.tsx";
+import { UpdateContextProvider } from "./contextProviders/UpdateContextProvider";
 
 function App() {
     const { themeId } = useThemeContext();
@@ -32,24 +33,26 @@ function App() {
                         <CssBaseline />
                         <GlobalStyles styles={themeScrollbarRegistry[themeId]} />
                         <FeedbackContextProvider>
-                            <IpcContextProvider>
-                                <ServersContextProvider>
-                                    <TtsInstallerContextProvider>
-                                        <OnboardingContextProvider>
-                                            <Routes>
-                                                <Route element={<SideBarLayout />}>
-                                                    <Route path="/" element={<ServersPage />} />
-                                                    <Route path="/installations" element={<InstallationsPage />} />
-                                                    <Route path="/news" element={<NewsPage />} />
-                                                    <Route path="/preferences" element={<PreferencesPage />} />
-                                                    <Route path="/components" element={<ComponentsDemoPage />} />
-                                                    <Route path="*" element={<WorkInProgressLayout />} />
-                                                </Route>
-                                            </Routes>
-                                        </OnboardingContextProvider>
-                                    </TtsInstallerContextProvider>
-                                </ServersContextProvider>
-                            </IpcContextProvider>
+                            <UpdateContextProvider>
+                                <IpcContextProvider>
+                                    <ServersContextProvider>
+                                        <TtsInstallerContextProvider>
+                                            <OnboardingContextProvider>
+                                                <Routes>
+                                                    <Route element={<SideBarLayout />}>
+                                                        <Route path="/" element={<ServersPage />} />
+                                                        <Route path="/installations" element={<InstallationsPage />} />
+                                                        <Route path="/news" element={<NewsPage />} />
+                                                        <Route path="/preferences" element={<PreferencesPage />} />
+                                                        <Route path="/components" element={<ComponentsDemoPage />} />
+                                                        <Route path="*" element={<WorkInProgressLayout />} />
+                                                    </Route>
+                                                </Routes>
+                                            </OnboardingContextProvider>
+                                        </TtsInstallerContextProvider>
+                                    </ServersContextProvider>
+                                </IpcContextProvider>
+                            </UpdateContextProvider>
                         </FeedbackContextProvider>
                     </CssVarsProvider>
                 } />
