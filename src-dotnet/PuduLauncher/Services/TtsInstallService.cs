@@ -12,7 +12,7 @@ public class TtsInstallService(
 {
     private const string InstallerExeName = "HonkTTS.Installer";
     private const string InstallerLogPrefix = "[HonkTTS.Installer]";
-    private readonly object _processLock = new();
+    private readonly Lock _processLock = new();
     private Process? _currentInstallerProcess;
 
     public async Task DownloadInstallerAsync(string downloadUrl, string zipPath, CancellationToken ct = default)
@@ -41,7 +41,9 @@ public class TtsInstallService(
             RedirectStandardError = true,
         };
 
-        using var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
+        using var process = new Process();
+        process.StartInfo = psi;
+        process.EnableRaisingEvents = true;
         process.Start();
 
         lock (_processLock)
@@ -52,7 +54,8 @@ public class TtsInstallService(
         logger.LogInformation("Running TTS installer (PID {Pid}): {Exe} \"{InstallPath}\"",
             process.Id, installerExe, installPath);
 
-        using var cancellationRegistration = ct.Register(() =>
+        // ReSharper disable AccessToDisposedClosure  process is awaited before disposal
+        await using var cancellationRegistration = ct.Register(() =>
             TryKillProcessTree(process, logger, "Installer cancellation requested."));
 
         var stdoutTask = Task.Run(async () =>
@@ -72,6 +75,7 @@ public class TtsInstallService(
                 await eventPublisher.PublishAsync(new TtsInstallOutputEvent { Line = line }, ct);
             }
         }, ct);
+        // ReSharper restore AccessToDisposedClosure
 
         try
         {
@@ -105,11 +109,9 @@ public class TtsInstallService(
     {
         lock (_processLock)
         {
-            if (_currentInstallerProcess is not null)
-            {
-                TryKillProcessTree(_currentInstallerProcess, logger, "Service disposing while installer still running.");
-                _currentInstallerProcess = null;
-            }
+            if (_currentInstallerProcess is null) return;
+            TryKillProcessTree(_currentInstallerProcess, logger, "Service disposing while installer still running.");
+            _currentInstallerProcess = null;
         }
     }
 
@@ -122,7 +124,7 @@ public class TtsInstallService(
                 return;
             }
 
-            logger.LogWarning("{Reason} Killing installer process tree (PID {Pid}).", reason, process.Id);
+            logger.LogWarning("{Reason} Killing installer process tree (PID {Pid})", reason, process.Id);
             process.Kill(entireProcessTree: true);
         }
         catch (InvalidOperationException)
@@ -131,7 +133,7 @@ public class TtsInstallService(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to kill installer process tree.");
+            logger.LogWarning(ex, "Failed to kill installer process tree");
         }
     }
 

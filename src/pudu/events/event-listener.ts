@@ -13,18 +13,37 @@ export class EventListener {
   private reconnectTimer: number | null = null;
   private shouldReconnect = true;
   private connectionSession = 0;
+  private connectPromise: Promise<void> | null = null;
 
   async connect(): Promise<void> {
     this.shouldReconnect = true;
-    const session = this.connectionSession;
 
     if (this.ws?.readyState === WebSocket.OPEN || this.ws?.readyState === WebSocket.CONNECTING) {
       return;
     }
 
+    if (this.connectPromise) {
+      return this.connectPromise;
+    }
+
+    this.connectPromise = this.doConnect();
+    try {
+      await this.connectPromise;
+    } finally {
+      this.connectPromise = null;
+    }
+  }
+
+  private async doConnect(): Promise<void> {
+    const session = this.connectionSession;
+
     try {
       const wsUrl = await getSidecarWsUrl();
       if (!this.shouldReconnect || session !== this.connectionSession) {
+        return;
+      }
+
+      if (this.ws?.readyState === WebSocket.OPEN || this.ws?.readyState === WebSocket.CONNECTING) {
         return;
       }
 
@@ -125,6 +144,7 @@ export class EventListener {
   disconnect(): void {
     this.shouldReconnect = false;
     this.connectionSession += 1;
+    this.connectPromise = null;
 
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
