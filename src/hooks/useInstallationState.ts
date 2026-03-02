@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import type { Installation, InstallationsChangedEvent } from "../pudu/generated";
 import { GameLaunchApi, InstallationsApi } from "../pudu/generated";
 import { EventListener } from "../pudu/events/event-listener";
-import { useErrorContext } from "../contextProviders/ErrorContextProvider";
+import { useFeedbackContext } from "../contextProviders/FeedbackContextProvider";
 
 export function useInstallationState() {
-    const { showError } = useErrorContext();
+    const { showError } = useFeedbackContext();
     const [installations, setInstallations] = useState<Installation[] | null>(null);
 
     useEffect(() => {

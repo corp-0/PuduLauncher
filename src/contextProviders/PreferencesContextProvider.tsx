@@ -1,7 +1,7 @@
 import { createContext, type PropsWithChildren, useContext, useEffect, useRef, useState } from "react";
 import type { Preferences } from "../pudu/generated";
 import { InstallationsApi, PreferencesApi } from "../pudu/generated";
-import { useErrorContext } from "./ErrorContextProvider";
+import { useFeedbackContext } from "./FeedbackContextProvider";
 
 interface PreferencesContextValue {
     preferences: Preferences | null;
@@ -17,7 +17,7 @@ const DEBOUNCE_MS = 500;
 
 export function PreferencesContextProvider(props: PropsWithChildren) {
     const { children } = props;
-    const { showError } = useErrorContext();
+    const { showError } = useFeedbackContext();
     const [preferences, setPreferences] = useState<Preferences | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);

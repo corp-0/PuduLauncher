@@ -1,8 +1,8 @@
 import type { PropsWithChildren } from "react";
 import {
-    ErrorContext,
-    type ErrorContextValue,
-} from "../contextProviders/ErrorContextProvider";
+    FeedbackContext,
+    type FeedbackContextValue,
+} from "../contextProviders/FeedbackContextProvider";
 import {
     OnboardingContextProvider,
     type OnboardingApiClient,
@@ -17,29 +17,32 @@ interface OnboardingCommandResult {
 
 const NOOP = () => { };
 
-export function createMockErrorContextValue(
-    overrides: Partial<ErrorContextValue> = {},
-): ErrorContextValue {
+export function createMockFeedbackContextValue(
+    overrides: Partial<FeedbackContextValue> = {},
+): FeedbackContextValue {
     return {
         showError: NOOP,
         showFatal: NOOP,
         clearFatal: NOOP,
         recentErrors: [],
+        showSuccess: NOOP,
+        showInfo: NOOP,
+        showWarning: NOOP,
         ...overrides,
     };
 }
 
-interface MockErrorProviderProps extends PropsWithChildren {
-    value?: Partial<ErrorContextValue>;
+interface MockFeedbackProviderProps extends PropsWithChildren {
+    value?: Partial<FeedbackContextValue>;
 }
 
-export function MockErrorProvider(props: MockErrorProviderProps) {
+export function MockFeedbackProvider(props: MockFeedbackProviderProps) {
     const { children, value } = props;
 
     return (
-        <ErrorContext.Provider value={createMockErrorContextValue(value)}>
+        <FeedbackContext.Provider value={createMockFeedbackContextValue(value)}>
             {children}
-        </ErrorContext.Provider>
+        </FeedbackContext.Provider>
     );
 }
 
@@ -88,7 +91,7 @@ interface MockOnboardingProviderProps extends PropsWithChildren {
     pendingSteps: OnboardingStep[];
     createApi?: () => OnboardingApiClient;
     apiMockOptions?: Omit<OnboardingApiMockOptions, "pendingSteps">;
-    errorContextValue?: Partial<ErrorContextValue>;
+    feedbackContextValue?: Partial<FeedbackContextValue>;
     errorReporter?: OnboardingContextProviderProps["errorReporter"];
 }
 
@@ -98,7 +101,7 @@ export function MockOnboardingProvider(props: MockOnboardingProviderProps) {
         pendingSteps,
         createApi,
         apiMockOptions,
-        errorContextValue,
+        feedbackContextValue,
         errorReporter,
     } = props;
 
@@ -109,13 +112,13 @@ export function MockOnboardingProvider(props: MockOnboardingProviderProps) {
         }));
 
     return (
-        <MockErrorProvider value={errorContextValue}>
+        <MockFeedbackProvider value={feedbackContextValue}>
             <OnboardingContextProvider
                 createApi={createApiForProvider}
                 errorReporter={errorReporter}
             >
                 {children}
             </OnboardingContextProvider>
-        </MockErrorProvider>
+        </MockFeedbackProvider>
     );
 }

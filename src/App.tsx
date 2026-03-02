@@ -8,7 +8,7 @@ import { useThemeContext } from "./contextProviders/ThemeProvider";
 import { themeRegistry, themeScrollbarRegistry } from "./themes";
 import ComponentsDemoPage from "./components/pages/ComponentsDemoPage.tsx";
 import { ServersContextProvider } from "./contextProviders/ServersContextProvider";
-import { ErrorContextProvider } from "./contextProviders/ErrorContextProvider";
+import { FeedbackContextProvider } from "./contextProviders/FeedbackContextProvider";
 import InstallationsPage from "./components/pages/InstallationsPage.tsx";
 import PreferencesPage from "./components/pages/PreferencesPage.tsx";
 import { OnboardingContextProvider } from "./contextProviders/OnboardingContextProvider";
@@ -31,7 +31,7 @@ function App() {
                     <CssVarsProvider defaultMode="dark" modeStorageKey="pudu-color-mode" theme={themeRegistry[themeId]}>
                         <CssBaseline />
                         <GlobalStyles styles={themeScrollbarRegistry[themeId]} />
-                        <ErrorContextProvider>
+                        <FeedbackContextProvider>
                             <IpcContextProvider>
                                 <ServersContextProvider>
                                     <TtsInstallerContextProvider>
@@ -50,7 +50,7 @@ function App() {
                                     </TtsInstallerContextProvider>
                                 </ServersContextProvider>
                             </IpcContextProvider>
-                        </ErrorContextProvider>
+                        </FeedbackContextProvider>
                     </CssVarsProvider>
                 } />
             </Routes>

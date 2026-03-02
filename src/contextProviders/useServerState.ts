@@ -10,7 +10,7 @@ import type {
 import { DownloadsApi, GameLaunchApi, InstallationsApi, PreferencesApi, ServersApi } from "../pudu/generated";
 import { EventListener } from "../pudu/events/event-listener";
 import { downloadKey } from "./servers.resolvers";
-import { useErrorContext } from "./ErrorContextProvider";
+import { useFeedbackContext } from "./FeedbackContextProvider";
 
 // Mirrors C# DownloadState enum
 export const DownloadState = {
@@ -39,7 +39,7 @@ const DEFAULT_SERVER_POLL_INTERVAL_MS = 10_000;
 
 export function useServerState(options: UseServerStateOptions) {
     const { isServersPageActive } = options;
-    const { showError } = useErrorContext();
+    const { showError } = useFeedbackContext();
     const [servers, setServers] = useState<GameServer[] | null>(null);
     const [installations, setInstallations] = useState<Installation[]>([]);
     const [downloads, setDownloads] = useState<Map<string, DownloadSnapshot>>(new Map());

@@ -1,7 +1,7 @@
 import { Alert, Button, Chip, CircularProgress, Stack, Typography } from "@mui/joy";
 import { useCallback, useEffect, useState } from "react";
 import { TTS_STATUS, TTS_STATUS_LABELS } from "../../../../constants/ttsStatus";
-import { useErrorContext } from "../../../../contextProviders/ErrorContextProvider";
+import { useFeedbackContext } from "../../../../contextProviders/FeedbackContextProvider";
 import { EventListener } from "../../../../pudu/events/event-listener";
 import { TtsApi, type Preferences, type TtsState } from "../../../../pudu/generated";
 import PreferencePathFieldRow from "../PreferencePathFieldRow";
@@ -152,7 +152,7 @@ interface TtsPreferencesLayoutProps {
 
 export default function TtsPreferencesLayout(props: TtsPreferencesLayoutProps) {
     const { categoryKey, preferences, updateField } = props;
-    const { showError } = useErrorContext();
+    const { showError } = useFeedbackContext();
     const [ttsState, setTtsState] = useState<TtsState | null>(null);
     const [isLoadingState, setIsLoadingState] = useState(true);
     const [isRunningCommand, setIsRunningCommand] = useState(false);

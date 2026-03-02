@@ -4,7 +4,7 @@ import { useInstallationState } from "../hooks/useInstallationState";
 import type { DownloadProgressEvent, DownloadStateChangedEvent, RegistryBuild } from "../pudu/generated";
 import { InstallationsApi, PreferencesApi } from "../pudu/generated";
 import { EventListener } from "../pudu/events/event-listener";
-import { useErrorContext } from "./ErrorContextProvider";
+import { useFeedbackContext } from "./FeedbackContextProvider";
 
 const DownloadState = {
     InProgress: 1,
@@ -50,7 +50,7 @@ const InstallationsContext = createContext<InstallationsContextValue | undefined
 
 export function InstallationsContextProvider(props: PropsWithChildren) {
     const { children } = props;
-    const { showError } = useErrorContext();
+    const { showError } = useFeedbackContext();
     const { installations, deleteInstallation, launchGame } = useInstallationState();
 
     const [registryBuilds, setRegistryBuilds] = useState<RegistryBuild[]>([]);

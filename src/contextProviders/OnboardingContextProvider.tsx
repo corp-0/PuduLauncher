@@ -1,7 +1,7 @@
 import {createContext, type PropsWithChildren, useContext, useEffect, useRef, useState} from "react";
 import {Alert, Box, Modal, ModalDialog, Stack, Typography} from "@mui/joy";
 import {OnboardingApi, type OnboardingStep} from "../pudu/generated";
-import {ErrorContext} from "./ErrorContextProvider";
+import {FeedbackContext} from "./FeedbackContextProvider";
 import {onboardingStepRegistry} from "./onboardingStepRegistry";
 import PuduStepper from "../components/organisms/common/PuduStepper";
 
@@ -32,7 +32,7 @@ export interface OnboardingContextProviderProps extends PropsWithChildren {
 
 export function OnboardingContextProvider(props: OnboardingContextProviderProps) {
     const {children, createApi, errorReporter} = props;
-    const errorContext = useContext(ErrorContext);
+    const errorContext = useContext(FeedbackContext);
     const showError = errorReporter ?? errorContext?.showError ?? (() => {
     });
     const buildApi = createApi ?? (() => new OnboardingApi());

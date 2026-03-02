@@ -3,7 +3,7 @@ import TtsInstallerLayout from "../components/layouts/tts/TtsInstallerLayout";
 import { TTS_STATUS, TTS_STATUS_LABELS } from "../constants/ttsStatus";
 import { EventListener } from "../pudu/events/event-listener";
 import { TtsApi, type TtsState } from "../pudu/generated";
-import { useErrorContext } from "./ErrorContextProvider";
+import { useFeedbackContext } from "./FeedbackContextProvider";
 
 interface TtsInstallerContextValue {
     isInstallerOpen: boolean;
@@ -117,7 +117,7 @@ function inferCurrentStep(status: number | null, installLogs: string[]): number 
 
 export function TtsInstallerContextProvider(props: PropsWithChildren) {
     const { children } = props;
-    const { showError } = useErrorContext();
+    const { showError } = useFeedbackContext();
 
     const [ttsState, setTtsState] = useState<TtsState | null>(null);
     const [statusMessage, setStatusMessage] = useState<string | null>(null);

@@ -1,6 +1,6 @@
 import { CircularProgress, Stack } from "@mui/joy";
 import { useEffect, useState } from "react";
-import { useErrorContext } from "../../../../../contextProviders/ErrorContextProvider";
+import { useFeedbackContext } from "../../../../../contextProviders/FeedbackContextProvider";
 import type { OnboardingStepComponentProps } from "../../../../../contextProviders/onboardingStepRegistry";
 import { useStepContext } from "../../../../../contextProviders/StepContextProvider";
 import { PreferencesApi, TtsApi, type Preferences } from "../../../../../pudu/generated";
@@ -11,7 +11,7 @@ import InstallationsPathLayout from "./InstallationsPathLayout";
 export default function MainLayout(props: OnboardingStepComponentProps) {
     const { onComplete } = props;
     const { currentStep, goToNextStep, goToPreviousStep } = useStepContext();
-    const { showError } = useErrorContext();
+    const { showError } = useFeedbackContext();
 
     const [preferences, setPreferences] = useState<Preferences | null>(null);
     const [installationsPath, setInstallationsPath] = useState("");

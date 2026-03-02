@@ -1,6 +1,6 @@
 import { createContext, type PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { BlogApi, ChangelogApi, type BlogPost, type ChangelogEntry } from "../pudu/generated";
-import { useErrorContext } from "./ErrorContextProvider";
+import { useFeedbackContext } from "./FeedbackContextProvider";
 
 const ROTATION_INTERVAL_MS = 8_000;
 const POSTS_TO_FETCH = 12;
@@ -51,7 +51,7 @@ function buildVisiblePosts(posts: BlogPost[], startIndex: number): BlogPost[] {
 
 export function NewsContextProvider(props: PropsWithChildren) {
     const { children } = props;
-    const { showError } = useErrorContext();
+    const { showError } = useFeedbackContext();
 
     const [posts, setPosts] = useState<BlogPost[]>([]);
     const [changelogEntries, setChangelogEntries] = useState<ChangelogEntry[]>([]);

@@ -8,13 +8,14 @@ import {
 } from "react";
 import { CircularProgress, Modal, ModalDialog, Stack, Typography } from "@mui/joy";
 import FatalErrorModal from "../components/molecules/errors/FatalErrorModal";
-import ErrorSnackbar from "../components/molecules/errors/ErrorSnackbar";
+import FeedbackSnackbar from "../components/molecules/errors/FeedbackSnackbar";
 import { ErrorDisplayApi, type FrontendErrorEvent } from "../pudu/generated";
 import { EventListener } from "../pudu/events/event-listener";
 import { getSidecarPort } from "../pudu/sidecar";
 import { invoke } from "@tauri-apps/api/core";
 
 export type ErrorSeverity = "error" | "fatal";
+export type SnackbarSeverity = "error" | "success" | "info" | "warning";
 
 export interface ErrorReportInput {
     source: string;
@@ -24,6 +25,11 @@ export interface ErrorReportInput {
     correlationId?: string | null;
     isTransient?: boolean;
     dedupe?: boolean;
+}
+
+export interface FeedbackInput {
+    message: string;
+    detail?: string | null;
 }
 
 export interface ErrorDisplayItem {
@@ -38,14 +44,24 @@ export interface ErrorDisplayItem {
     timestamp: string;
 }
 
-export interface ErrorContextValue {
+export interface SnackbarItem {
+    id: string;
+    severity: SnackbarSeverity;
+    message: string;
+    detail?: string | null;
+}
+
+export interface FeedbackContextValue {
     showError: (input: ErrorReportInput) => void;
     showFatal: (input: ErrorReportInput) => void;
     clearFatal: () => void;
     recentErrors: ErrorDisplayItem[];
+    showSuccess: (input: FeedbackInput) => void;
+    showInfo: (input: FeedbackInput) => void;
+    showWarning: (input: FeedbackInput) => void;
 }
 
-export const ErrorContext = createContext<ErrorContextValue | undefined>(undefined);
+export const FeedbackContext = createContext<FeedbackContextValue | undefined>(undefined);
 
 const DEDUPE_WINDOW_MS = 30_000;
 const MAX_RECENT_ERRORS = 100;
@@ -96,14 +112,53 @@ function buildTrace(error: ErrorDisplayItem) {
     return parts.join("\n");
 }
 
-export function ErrorContextProvider(props: PropsWithChildren) {
+// Isolated component that owns the snackbar queue state. This prevents
+// snackbar appear/dismiss cycles from re-rendering FeedbackContextProvider
+// (and by extension all context consumers), which would reset uncontrolled
+// DOM state like scroll positions.
+function SnackbarHost(props: { register: (push: (item: SnackbarItem) => void) => void; onSeeLogs: () => void }) {
+    const { register, onSeeLogs } = props;
+    const [queue, setQueue] = useState<SnackbarItem[]>([]);
+
+    const push = (item: SnackbarItem) => {
+        setQueue((prev) => [...prev, item]);
+    };
+
+    useEffect(() => {
+        register(push);
+    }, [register, push]);
+
+    const dismiss = () => {
+        setQueue((prev) => prev.slice(1));
+    };
+
+    const currentSnackbar = queue[0] ?? null;
+
+    return (
+        <FeedbackSnackbar
+            snackbar={currentSnackbar}
+            onClose={dismiss}
+            onSeeLogs={onSeeLogs}
+        />
+    );
+}
+
+export function FeedbackContextProvider(props: PropsWithChildren) {
     const { children } = props;
     const [backendReady, setBackendReady] = useState(false);
     const [recentErrors, setRecentErrors] = useState<ErrorDisplayItem[]>([]);
-    const [snackbarQueue, setSnackbarQueue] = useState<ErrorDisplayItem[]>([]);
     const [fatalError, setFatalError] = useState<ErrorDisplayItem | null>(null);
     const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
     const fingerprintsRef = useRef<Map<string, number>>(new Map());
+    const snackbarPushRef = useRef<(item: SnackbarItem) => void>(() => {});
+
+    const registerSnackbarPush = (push: (item: SnackbarItem) => void) => {
+        snackbarPushRef.current = push;
+    };
+
+    const pushSnackbarItem = (item: SnackbarItem) => {
+        snackbarPushRef.current(item);
+    };
 
     const pushError = (error: ErrorDisplayItem, dedupe = true) => {
         if (dedupe) {
@@ -132,7 +187,21 @@ export function ErrorContextProvider(props: PropsWithChildren) {
             return;
         }
 
-        setSnackbarQueue((prev) => [...prev, error]);
+        pushSnackbarItem({
+            id: error.id,
+            severity: "error",
+            message: error.userMessage,
+            detail: error.code,
+        });
+    };
+
+    const pushSnackbar = (severity: SnackbarSeverity, input: FeedbackInput) => {
+        pushSnackbarItem({
+            id: createId(),
+            severity,
+            message: input.message,
+            detail: input.detail,
+        });
     };
 
     const showError = (input: ErrorReportInput) => {
@@ -163,13 +232,13 @@ export function ErrorContextProvider(props: PropsWithChildren) {
         }, input.dedupe ?? true);
     };
 
+    const showSuccess = (input: FeedbackInput) => pushSnackbar("success", input);
+    const showInfo = (input: FeedbackInput) => pushSnackbar("info", input);
+    const showWarning = (input: FeedbackInput) => pushSnackbar("warning", input);
+
     const clearFatal = () => {
         setFatalError(null);
         setCopyFeedback(null);
-    };
-
-    const dismissSnackbar = () => {
-        setSnackbarQueue((prev) => prev.slice(1));
     };
 
     const openLogDirectory = () => {
@@ -271,18 +340,20 @@ export function ErrorContextProvider(props: PropsWithChildren) {
         };
     }, [showFatal]);
 
-    const value: ErrorContextValue = {
+    const value: FeedbackContextValue = {
         showError,
         showFatal,
         clearFatal,
         recentErrors,
+        showSuccess,
+        showInfo,
+        showWarning,
     };
 
-    const currentSnackbar = snackbarQueue[0] ?? null;
     const fatalTrace = fatalError ? buildTrace(fatalError) : "";
 
     return (
-        <ErrorContext.Provider value={value}>
+        <FeedbackContext.Provider value={value}>
             {backendReady ? children : (
                 <Modal open>
                     <ModalDialog layout="fullscreen">
@@ -296,11 +367,7 @@ export function ErrorContextProvider(props: PropsWithChildren) {
                 </Modal>
             )}
 
-            <ErrorSnackbar
-                error={currentSnackbar}
-                onClose={dismissSnackbar}
-                onSeeLogs={openLogDirectory}
-            />
+            <SnackbarHost register={registerSnackbarPush} onSeeLogs={openLogDirectory} />
 
             <FatalErrorModal
                 error={fatalError}
@@ -310,15 +377,15 @@ export function ErrorContextProvider(props: PropsWithChildren) {
                 onDismiss={clearFatal}
                 onSeeLogs={openLogDirectory}
             />
-        </ErrorContext.Provider>
+        </FeedbackContext.Provider>
     );
 }
 
-export function useErrorContext() {
-    const context = useContext(ErrorContext);
+export function useFeedbackContext() {
+    const context = useContext(FeedbackContext);
 
     if (context === undefined) {
-        throw new Error("useErrorContext must be used within a ErrorContextProvider.");
+        throw new Error("useFeedbackContext must be used within a FeedbackContextProvider.");
     }
 
     return context;
