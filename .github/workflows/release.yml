@@ -16,16 +16,11 @@ jobs:
         include:
           - platform: windows-latest
             args: ""
-            portable_name: pudu-launcher-portable-windows-x64.zip
-            ext: .exe
+            portable_name: Windows-pudu-launcher-portable-x64.zip
           - platform: ubuntu-22.04
             args: ""
-            portable_name: pudu-launcher-portable-linux-x64.tar.gz
-            ext: ""
           - platform: macos-latest
             args: ""
-            portable_name: pudu-launcher-portable-macos-x64.zip
-            ext: ""
 
     runs-on: ${{ matrix.platform }}
 
@@ -107,24 +102,20 @@ jobs:
           releaseDraft: true
           prerelease: false
           updaterJsonPreferNsis: true
+          assetNamePattern: "[platform]-[name][setup][version][arch].[ext]"
           args: ${{ matrix.args }}
 
-      - name: package portable
+      - name: package portable (Windows only)
+        if: matrix.platform == 'windows-latest'
         shell: bash
         run: |
           mkdir -p portable
-          cp "src-tauri/target/release/pudu-launcher${{ matrix.ext }}" portable/
-          cp "src-tauri/target/release/pudu-launcher-sidecar${{ matrix.ext }}" portable/
-          if [ "${{ matrix.ext }}" = "" ]; then
-            chmod +x portable/*
-          fi
-          if [[ "${{ matrix.portable_name }}" == *.tar.gz ]]; then
-            tar -czf "${{ matrix.portable_name }}" -C portable .
-          else
-            cd portable && 7z a "../${{ matrix.portable_name }}" * || zip -j "../${{ matrix.portable_name }}" *
-          fi
+          cp "src-tauri/target/release/pudu-launcher.exe" portable/
+          cp "src-tauri/target/release/pudu-launcher-sidecar.exe" portable/
+          cd portable && 7z a "../${{ matrix.portable_name }}" * || zip -j "../${{ matrix.portable_name }}" *
 
       - name: upload portable to release
+        if: matrix.platform == 'windows-latest'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
