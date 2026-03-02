@@ -30,17 +30,10 @@ jobs:
           path: src-tauri/target/release/bundle/macos/*.app
           if-no-files-found: ignore
 
-      - name: package portable
-        run: |
-          mkdir -p portable
-          cp src-tauri/target/release/pudu-launcher portable/
-          cp src-tauri/target/release/pudu-launcher-sidecar portable/
-          chmod +x portable/pudu-launcher portable/pudu-launcher-sidecar
-          zip -j pudu-launcher-portable-macos-x64.zip portable/*
-
       - name: upload portable
         uses: actions/upload-artifact@v4
         with:
           name: macos-portable
-          path: pudu-launcher-portable-macos-x64.zip
-          if-no-files-found: error
+          path: |
+            src-tauri/target/release/pudu-launcher
+            src-tauri/target/release/pudu-launcher-sidecar
