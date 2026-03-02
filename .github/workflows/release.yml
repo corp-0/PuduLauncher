@@ -13,12 +13,16 @@ jobs:
         include:
           - platform: windows-latest
             args: ""
+            portable_name: pudu-launcher-portable-windows-x64.zip
+            ext: .exe
           - platform: ubuntu-22.04
             args: ""
+            portable_name: pudu-launcher-portable-linux-x64.tar.gz
+            ext: ""
           - platform: macos-latest
-            args: "--target aarch64-apple-darwin"
-          - platform: macos-latest
-            args: "--target x86_64-apple-darwin"
+            args: ""
+            portable_name: pudu-launcher-portable-macos-x64.zip
+            ext: ""
 
     runs-on: ${{ matrix.platform }}
 
@@ -42,7 +46,7 @@ jobs:
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ""
 
       - name: cache cargo
         uses: actions/cache@v4
@@ -100,3 +104,25 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+      - name: package portable
+        shell: bash
+        run: |
+          mkdir -p portable
+          cp "src-tauri/target/release/pudu-launcher${{ matrix.ext }}" portable/
+          cp "src-tauri/target/release/pudu-launcher-sidecar${{ matrix.ext }}" portable/
+          if [ "${{ matrix.ext }}" = "" ]; then
+            chmod +x portable/*
+          fi
+          if [[ "${{ matrix.portable_name }}" == *.tar.gz ]]; then
+            tar -czf "${{ matrix.portable_name }}" -C portable .
+          else
+            cd portable && 7z a "../${{ matrix.portable_name }}" * || zip -j "../${{ matrix.portable_name }}" *
+          fi
+
+      - name: upload portable to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          gh release upload "${{ github.ref_name }}" "${{ matrix.portable_name }}" --clobber

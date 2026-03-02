@@ -40,13 +40,6 @@ jobs:
 
       - uses: ./.github/actions/tauri-build
 
-      - name: upload appimage
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-appimage
-          path: src-tauri/target/release/bundle/appimage/*.AppImage
-          if-no-files-found: ignore
-
       - name: upload deb
         uses: actions/upload-artifact@v4
         with:
@@ -60,3 +53,18 @@ jobs:
           name: linux-rpm
           path: src-tauri/target/release/bundle/rpm/*.rpm
           if-no-files-found: ignore
+
+      - name: package portable
+        run: |
+          mkdir -p portable
+          cp src-tauri/target/release/pudu-launcher portable/
+          cp src-tauri/target/release/pudu-launcher-sidecar portable/
+          chmod +x portable/pudu-launcher portable/pudu-launcher-sidecar
+          tar -czf pudu-launcher-portable-linux-x64.tar.gz -C portable .
+
+      - name: upload portable
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-portable
+          path: pudu-launcher-portable-linux-x64.tar.gz
+          if-no-files-found: error
