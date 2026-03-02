@@ -30,10 +30,3 @@ jobs:
           path: src-tauri/target/release/bundle/macos/*.app
           if-no-files-found: ignore
 
-      - name: upload portable
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-portable
-          path: |
-            src-tauri/target/release/pudu-launcher
-            src-tauri/target/release/pudu-launcher-sidecar
