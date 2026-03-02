@@ -290,7 +290,7 @@ export function TtsInstallerContextProvider(props: PropsWithChildren) {
                 isBusy={isBusy}
                 currentStep={currentStep}
                 stepLabels={INSTALL_STEP_LABELS}
-                isComplete={isInstallComplete}
+                isComplete={isInstallComplete || currentStep >= INSTALL_STEP_LABELS.length}
                 longStepWarning={longStepWarning}
                 onClose={closeInstaller}
             />

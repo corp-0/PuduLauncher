@@ -101,6 +101,7 @@ public class TtsService : ITtsService, IDisposable
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _shutdownCts.Token);
         CancellationToken operationCt = linkedCts.Token;
         var installCompleted = false;
+        var shouldAutoStart = false;
 
         if (!await _operationLock.WaitAsync(0, operationCt))
         {
@@ -153,14 +154,7 @@ public class TtsService : ITtsService, IDisposable
                 {
                     installCompleted = true;
                     await SetStatusAsync(TtsStatus.Installed, "Installation complete");
-
-                    if (prefs.Tts.Enabled && prefs.Tts.AutoStartOnLaunch)
-                    {
-                        await SetStatusAsync(TtsStatus.ServerStarting, "Starting TTS server...");
-                        await _serverService.StartAsync(installPath, operationCt);
-                        await _serverService.WaitForHealthAsync(operationCt);
-                        await SetStatusAsync(TtsStatus.ServerRunning, "TTS server is running");
-                    }
+                    shouldAutoStart = prefs.Tts.Enabled && prefs.Tts.AutoStartOnLaunch;
                 }
                 else
                 {
@@ -177,24 +171,24 @@ public class TtsService : ITtsService, IDisposable
         {
             await SetStatusAsync(
                 installCompleted ? TtsStatus.Installed : TtsStatus.NotInstalled,
-                installCompleted ? "Server start cancelled" : "Installation cancelled");
+                installCompleted ? "Installation complete" : "Installation cancelled");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, installCompleted
-                ? "TTS auto-start failed after installation"
-                : "TTS installation failed");
+            _logger.LogError(ex, "TTS installation failed");
             await SetStatusAsync(TtsStatus.Error, ex.Message);
-            await _errorDisplayServer.ShowExceptionAsync(
-                ex,
-                "TTS",
-                installCompleted
-                    ? "TTS installation completed but auto-start failed"
-                    : "TTS installation failed");
+            await _errorDisplayServer.ShowExceptionAsync(ex, "TTS", "TTS installation failed");
         }
         finally
         {
             _operationLock.Release();
+        }
+
+        // Auto-start runs after the lock is released so the HTTP response returns
+        // immediately once install is confirmed. StartServerAsync acquires its own lock.
+        if (shouldAutoStart)
+        {
+            _ = Task.Run(() => StartServerAsync());
         }
     }
 
