@@ -59,10 +59,7 @@ fn resolve_log_target() -> tauri_plugin_log::TargetKind {
 
 /// Returns the `logs/` folder next to the executable if it is writable, or `None` otherwise.
 fn exe_relative_log_folder() -> Option<std::path::PathBuf> {
-    let logs_dir = std::env::current_exe()
-        .ok()?
-        .parent()?
-        .join("logs");
+    let logs_dir = std::env::current_exe().ok()?.parent()?.join("logs");
 
     std::fs::create_dir_all(&logs_dir).ok()?;
 
@@ -87,6 +84,13 @@ pub fn run() {
                 .max_file_size(10_000_000) // 10 MB per file
                 .build(),
         )
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            // A second instance was launched. Focus the existing window instead.
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.unminimize();
+                let _ = window.set_focus();
+            }
+        }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
@@ -110,7 +114,10 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![get_sidecar_port, open_log_directory])
+        .invoke_handler(tauri::generate_handler![
+            get_sidecar_port,
+            open_log_directory
+        ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app_handle, event| {
