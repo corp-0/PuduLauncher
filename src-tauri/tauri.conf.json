@@ -23,7 +23,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDJFMEQwMUQ0NjgzQzgyMTMKUldRVGdqeG8xQUVOTHZ4cHQ2c1laMEYxOWhZLzdRSzlhVnpsOEVzemJMTHVPQmdIUUh3eUlZYVQK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IHJzaWduIGVuY3J5cHRlZCBzZWNyZXQga2V5ClJXUlRZMEl5cVVGRHFUVzhveXpHbnNSY0tjc0NXNmdRa1ZjSUlYeFlQekNWOUQ3Q0lBb0FBQkFBQUFBQUFBQUFBQUlBQUFBQVNrM2FqMmd2cmRQV3JqWGV1ZmNwQVoxbG5GRUhVUUJneE5mL0RqTkZiOFFmSFA4ekppN0s3ZTdqVlVCOEFRd2lFelpzSzZrOXdKU0FOTURwdUVFVlRRRU9KZFlGTjBHam1lWU02ZS9zTTNDYy9wY3N2SnY0bmdEVjByOUVZSTZjbHlLT3UwZjVUaGM9Cg==",
       "endpoints": [
         "https://github.com/corp-0/PuduLauncher/releases/latest/download/latest.json"
       ]
