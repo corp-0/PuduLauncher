@@ -54,10 +54,3 @@ jobs:
           path: src-tauri/target/release/bundle/rpm/*.rpm
           if-no-files-found: ignore
 
-      - name: upload portable
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-portable
-          path: |
-            src-tauri/target/release/pudu-launcher
-            src-tauri/target/release/pudu-launcher-sidecar
