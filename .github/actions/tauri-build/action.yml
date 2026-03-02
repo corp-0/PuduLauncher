@@ -42,5 +42,5 @@ runs:
       shell: bash
 
     - name: build tauri
-      run: npm run tauri build
+      run: npx tauri build --config '{"bundle":{"createUpdaterArtifacts":false}}'
       shell: bash

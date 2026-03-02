@@ -1,4 +1,5 @@
 import { Alert, Box, Button, LinearProgress, Stack, Typography } from "@mui/joy";
+import Markdown from "react-markdown";
 
 export type UpdateStatus = "update-available" | "downloading" | "installing" | "error";
 
@@ -71,9 +72,9 @@ export default function UpdateLayout(props: UpdateLayoutProps) {
                         overflow: "auto",
                     }}>
                         <Typography level="title-sm" sx={{ mb: 1 }}>Release notes</Typography>
-                        <Typography level="body-sm" sx={{ whiteSpace: "pre-wrap" }}>
-                            {releaseNotes}
-                        </Typography>
+                        <Box sx={{ fontSize: "sm", "& p": { m: 0 }, "& ul,& ol": { m: 0, pl: 2.5 } }}>
+                            <Markdown>{releaseNotes}</Markdown>
+                        </Box>
                     </Box>
                 )}
 

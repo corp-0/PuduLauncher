@@ -17,6 +17,11 @@ fn get_sidecar_port(state: tauri::State<SidecarPort>) -> Result<u16, String> {
 }
 
 #[tauri::command]
+fn stop_sidecar(state: tauri::State<SidecarManager>) {
+    state.stop();
+}
+
+#[tauri::command]
 fn open_log_directory(app: tauri::AppHandle) -> Result<(), String> {
     let log_dir = resolve_log_directory(&app)?;
 
@@ -121,7 +126,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             get_sidecar_port,
-            open_log_directory
+            open_log_directory,
+            stop_sidecar
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

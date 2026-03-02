@@ -1,5 +1,4 @@
 import {
-    Code,
     Favorite,
     Message,
     Newspaper,
@@ -8,15 +7,15 @@ import {
     Settings,
     VideogameAsset
 } from "@mui/icons-material";
-import {openUrl} from "@tauri-apps/plugin-opener";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import {
     createContext,
     type PropsWithChildren,
     useContext
 } from "react";
-import {useMatch, useNavigate} from "react-router";
-import {SideBarMenuItemProps} from "../components/molecules/sideBar/SideBarMenuItem";
-import {SideBarExternalLinkProps} from "../components/molecules/sideBar/SideBarExternalLink";
+import { useMatch, useNavigate } from "react-router";
+import { SideBarMenuItemProps } from "../components/molecules/sideBar/SideBarMenuItem";
+import { SideBarExternalLinkProps } from "../components/molecules/sideBar/SideBarExternalLink";
 import {
     UNITYSTATION_DISCORD_URL,
     UNITYSTATION_PATREON_URL,
@@ -31,66 +30,59 @@ interface SideBarContextValue {
 const SideBarContext = createContext<SideBarContextValue | undefined>(undefined);
 
 export function SideBarContextProvider(props: PropsWithChildren) {
-    const {children} = props;
+    const { children } = props;
     const navigate = useNavigate();
 
-    const isServersActive = useMatch({path: "/", end: true}) !== null;
-    const isNewsActive = useMatch({path: "/news/*", end: false}) !== null;
-    const isInstallationsActive = useMatch({path: "/installations/*", end: false}) !== null;
-    const isPreferencesActive = useMatch({path: "/preferences/*", end: false}) !== null;
-    const isComponentsActive = useMatch({path: "/components/*", end: false}) !== null;
+    const isServersActive = useMatch({ path: "/", end: true }) !== null;
+    const isNewsActive = useMatch({ path: "/news/*", end: false }) !== null;
+    const isInstallationsActive = useMatch({ path: "/installations/*", end: false }) !== null;
+    const isPreferencesActive = useMatch({ path: "/preferences/*", end: false }) !== null;
 
     const menuItems: SideBarMenuItemProps[] = [
         {
             text: "Servers",
-            icon: <VideogameAsset/>,
+            icon: <VideogameAsset />,
             isActive: isServersActive,
             onClick: () => navigate("/"),
         },
         {
             text: "News",
-            icon: <Newspaper/>,
+            icon: <Newspaper />,
             isActive: isNewsActive,
             onClick: () => navigate("/news"),
         },
         {
             text: "Installations",
-            icon: <Save/>,
+            icon: <Save />,
             isActive: isInstallationsActive,
             onClick: () => navigate("/installations"),
         },
         {
             text: "Preferences",
-            icon: <Settings/>,
+            icon: <Settings />,
             isActive: isPreferencesActive,
             onClick: () => navigate("/preferences"),
-        },
-        {
-            text: "Components Demo",
-            icon: <Code/>,
-            isActive: isComponentsActive,
-            onClick: () => navigate("/components"),
         },
     ];
 
     const externalLinks: SideBarExternalLinkProps[] = [
         {
             tooltip: "Unitystation's website",
-            icon: <Public/>,
+            icon: <Public />,
             onClick: () => {
                 void openUrl(UNITYSTATION_WEBSITE_URL);
             },
         },
         {
             tooltip: "Unitystation's Patreon",
-            icon: <Favorite/>,
+            icon: <Favorite />,
             onClick: () => {
                 void openUrl(UNITYSTATION_PATREON_URL);
             },
         },
         {
             tooltip: "Unitystation's Discord",
-            icon: <Message/>,
+            icon: <Message />,
             onClick: () => {
                 void openUrl(UNITYSTATION_DISCORD_URL);
             },

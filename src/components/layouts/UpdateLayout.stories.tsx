@@ -2,10 +2,7 @@ import { Box } from "@mui/joy";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import UpdateLayout from "./UpdateLayout";
 
-const sampleReleaseNotes = `- Fixed crash when launching multiple servers simultaneously
-- Added support for custom TTS voices
-- Improved startup performance
-- Updated dependencies for security patches`;
+const sampleReleaseNotes = "It is here! Feature parity with the old stationhub launcher, but with many extra goodies!\r\n\r\n## What's Changed\r\n* feat: first release of pudulauncher, now with 0% bugs by @corp-0 in [7](https://github.com/corp-0/PuduLauncher/pull/7)\r\n* feat: new HonkTTS and HonkTTS installer. Visually install the TTS server that powers immersive voices in Unitystation.\r\n* fix: TTS installation is no longer a side-effect of downloading a game build. You can manage your installation however you want.\r\n* feat: new onboarding system to have a friendly pudu guide you through new features and things that require your attention.\r\n* feat: new Discord rich presence functionality. If you feel like sharing, your friends on Discord can now see if you are playing and on what server.\r\n\r\n\r\n**Full Changelog**: [Here](https://github.com/corp-0/PuduLauncher/compare/v0.1.1...v1.0.0)"
 
 const meta = {
     title: "Layouts/UpdateLayout",

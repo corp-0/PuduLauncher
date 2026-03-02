@@ -1,6 +1,7 @@
 import { createContext, type PropsWithChildren, useContext, useEffect, useState } from "react";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { getVersion } from "@tauri-apps/api/app";
+import { invoke } from "@tauri-apps/api/core";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { FeedbackContext } from "./FeedbackContextProvider";
@@ -78,6 +79,7 @@ export function UpdateContextProvider(props: PropsWithChildren) {
 
         void (async () => {
             try {
+                await invoke("stop_sidecar");
                 await pendingUpdate.downloadAndInstall((event) => {
                     switch (event.event) {
                         case "Started":
