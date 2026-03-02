@@ -102,7 +102,7 @@ jobs:
           releaseDraft: true
           prerelease: false
           updaterJsonPreferNsis: true
-          assetNamePattern: "[platform]-[name][setup][version][arch].[ext]"
+          assetNamePattern: "[platform]-[name][setup][version]-[arch].[ext]"
           args: ${{ matrix.args }}
 
       - name: package portable (Windows only)
