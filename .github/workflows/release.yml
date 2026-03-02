@@ -2,8 +2,8 @@ name: release
 
 on:
   push:
-    tags:
-      - "v*.*.*"
+    branches:
+      - release
 
 permissions:
   contents: write
@@ -48,8 +48,6 @@ jobs:
 
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ""
 
       - name: cache cargo
         uses: actions/cache@v4
@@ -95,18 +93,19 @@ jobs:
       - name: install frontend dependencies
         run: npm ci
 
-      - uses: tauri-apps/tauri-action@v0
+      - name: build and release
+        id: tauri
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "PuduLauncher ${{ github.ref_name }}"
+          tagName: v__VERSION__
+          releaseName: "PuduLauncher v__VERSION__"
           releaseBody: "See the assets to download this version and install."
           releaseDraft: true
           prerelease: false
-          includeUpdaterJson: true
           updaterJsonPreferNsis: true
           args: ${{ matrix.args }}
 
@@ -130,4 +129,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
-          gh release upload "${{ github.ref_name }}" "${{ matrix.portable_name }}" --clobber
+          gh release upload "v${{ steps.tauri.outputs.appVersion }}" "${{ matrix.portable_name }}" --clobber

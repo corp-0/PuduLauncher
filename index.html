@@ -1,30 +1,31 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tauri + React + Typescript</title>
-  </head>
 
-  <body>
-    <div id="root"></div>
-    <script>
-      // Catch fatal errors that happen before React mounts (e.g. module import failures).
-      // Once React's ErrorContextProvider mounts, it registers its own handlers.
-      window.addEventListener("error", function(event) {
-        var root = document.getElementById("root");
-        if (root && !root.hasChildNodes()) {
-          root.innerHTML =
-            '<div style="padding:2rem;font-family:system-ui;color:#e0e0e0;background:#1a1a2e;height:100vh;box-sizing:border-box">' +
-            '<h1 style="color:#ff6b6b">Fatal Error</h1>' +
-            '<p>The application failed to start.</p>' +
-            '<pre style="white-space:pre-wrap;background:#16213e;padding:1rem;border-radius:8px;overflow:auto;max-height:60vh">' +
-            (event.message || "Unknown error") + "\n\n" + (event.filename || "") + ":" + (event.lineno || "") +
-            '</pre></div>';
-        }
-      });
-    </script>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pudu-launcher</title>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script>
+    // Catch fatal errors that happen before React mounts (e.g. module import failures).
+    // Once React's ErrorContextProvider mounts, it registers its own handlers.
+    window.addEventListener("error", function (event) {
+      var root = document.getElementById("root");
+      if (root && !root.hasChildNodes()) {
+        root.innerHTML =
+          '<div style="padding:2rem;font-family:system-ui;color:#e0e0e0;background:#1a1a2e;height:100vh;box-sizing:border-box">' +
+          '<h1 style="color:#ff6b6b">Fatal Error</h1>' +
+          '<p>The application failed to start.</p>' +
+          '<pre style="white-space:pre-wrap;background:#16213e;padding:1rem;border-radius:8px;overflow:auto;max-height:60vh">' +
+          (event.message || "Unknown error") + "\n\n" + (event.filename || "") + ":" + (event.lineno || "") +
+          '</pre></div>';
+      }
+    });
+  </script>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>
