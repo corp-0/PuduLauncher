@@ -117,7 +117,7 @@ function inferCurrentStep(status: number | null, installLogs: string[]): number 
 
 export function TtsInstallerContextProvider(props: PropsWithChildren) {
     const { children } = props;
-    const { showError } = useFeedbackContext();
+    const { showError, showSuccess } = useFeedbackContext();
 
     const [ttsState, setTtsState] = useState<TtsState | null>(null);
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -195,6 +195,10 @@ export function TtsInstallerContextProvider(props: PropsWithChildren) {
                 || event.status === TTS_STATUS.Error
             )) {
                 setIsInstallerOpen(true);
+            }
+
+            if (event.status === TTS_STATUS.ServerRunning) {
+                showSuccess({ message: "TTS server is running" });
             }
 
             setStatusMessage(event.message ?? null);
