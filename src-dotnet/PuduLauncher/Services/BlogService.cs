@@ -68,7 +68,7 @@ public class BlogService(IHttpClientFactory httpClientFactory, ILogger<BlogServi
     {
         var posts = new List<BlogPost>();
 
-        if (!root.TryGetProperty("results", out JsonElement results) || results.ValueKind != JsonValueKind.Array)
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("results", out JsonElement results) || results.ValueKind != JsonValueKind.Array)
         {
             return posts;
         }
@@ -114,7 +114,7 @@ public class BlogService(IHttpClientFactory httpClientFactory, ILogger<BlogServi
 
     private static string? TryGetString(JsonElement element, string propertyName)
     {
-        if (!element.TryGetProperty(propertyName, out JsonElement property))
+        if (element.ValueKind != JsonValueKind.Object || !element.TryGetProperty(propertyName, out JsonElement property))
         {
             return null;
         }
@@ -129,7 +129,7 @@ public class BlogService(IHttpClientFactory httpClientFactory, ILogger<BlogServi
 
     private static int? TryGetInt(JsonElement element, string propertyName)
     {
-        if (!element.TryGetProperty(propertyName, out JsonElement property))
+        if (element.ValueKind != JsonValueKind.Object || !element.TryGetProperty(propertyName, out JsonElement property))
         {
             return null;
         }

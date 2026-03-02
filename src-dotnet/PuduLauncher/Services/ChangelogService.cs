@@ -33,7 +33,7 @@ public class ChangelogService(IHttpClientFactory httpClientFactory, ILogger<Chan
     {
         var entries = new List<ChangelogEntry>();
 
-        if (!root.TryGetProperty("results", out JsonElement results) || results.ValueKind != JsonValueKind.Array)
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("results", out JsonElement results) || results.ValueKind != JsonValueKind.Array)
         {
             return entries;
         }
@@ -75,7 +75,7 @@ public class ChangelogService(IHttpClientFactory httpClientFactory, ILogger<Chan
 
     private static string? TryGetString(JsonElement element, string propertyName)
     {
-        if (!element.TryGetProperty(propertyName, out JsonElement property))
+        if (element.ValueKind != JsonValueKind.Object || !element.TryGetProperty(propertyName, out JsonElement property))
         {
             return null;
         }
