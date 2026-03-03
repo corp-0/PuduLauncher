@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="src-tauri/icons/square44x44Logo.png" alt="" height="44" /> Pudu Launcher
+  <img src="src-tauri/icons/Square44x44Logo.png" alt="" height="44" /> Pudu Launcher
 </h1>
 
 <p align="center">
