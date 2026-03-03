@@ -6,7 +6,6 @@ import ServersPage from "./components/pages/ServersPage";
 import WorkInProgressLayout from "./components/layouts/workInProgressLayout/WorkInProgressLayout";
 import { useThemeContext } from "./contextProviders/ThemeProvider";
 import { themeRegistry, themeScrollbarRegistry } from "./themes";
-import ComponentsDemoPage from "./components/pages/ComponentsDemoPage.tsx";
 import { ServersContextProvider } from "./contextProviders/ServersContextProvider";
 import { FeedbackContextProvider } from "./contextProviders/FeedbackContextProvider";
 import InstallationsPage from "./components/pages/InstallationsPage.tsx";
@@ -44,7 +43,6 @@ function App() {
                                                         <Route path="/installations" element={<InstallationsPage />} />
                                                         <Route path="/news" element={<NewsPage />} />
                                                         <Route path="/preferences" element={<PreferencesPage />} />
-                                                        <Route path="/components" element={<ComponentsDemoPage />} />
                                                         <Route path="*" element={<WorkInProgressLayout />} />
                                                     </Route>
                                                 </Routes>
