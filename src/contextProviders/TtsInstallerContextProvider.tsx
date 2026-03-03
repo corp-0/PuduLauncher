@@ -1,4 +1,4 @@
-import { createContext, type PropsWithChildren, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createContext, type PropsWithChildren, useContext, useEffect, useRef, useState } from "react";
 import TtsInstallerLayout from "../components/layouts/tts/TtsInstallerLayout";
 import { TTS_STATUS, TTS_STATUS_LABELS } from "../constants/ttsStatus";
 import { EventListener } from "../pudu/events/event-listener";
@@ -117,7 +117,7 @@ function inferCurrentStep(status: number | null, installLogs: string[]): number 
 
 export function TtsInstallerContextProvider(props: PropsWithChildren) {
     const { children } = props;
-    const { showError, showSuccess } = useFeedbackContext();
+    const { showError, showSuccess, showInfo } = useFeedbackContext();
 
     const [ttsState, setTtsState] = useState<TtsState | null>(null);
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -126,7 +126,7 @@ export function TtsInstallerContextProvider(props: PropsWithChildren) {
     const [maxReachedStep, setMaxReachedStep] = useState(1);
     const installSessionRef = useRef(false);
 
-    const beginInstallSession = useCallback(() => {
+    const beginInstallSession = () => {
         if (installSessionRef.current) {
             return;
         }
@@ -135,9 +135,9 @@ export function TtsInstallerContextProvider(props: PropsWithChildren) {
         setInstallLogs([]);
         setStatusMessage(null);
         setMaxReachedStep(1);
-    }, []);
+    };
 
-    const loadStatus = useCallback(async () => {
+    const loadStatus = async () => {
         const api = new TtsApi();
         const result = await api.getStatus();
 
@@ -157,7 +157,7 @@ export function TtsInstallerContextProvider(props: PropsWithChildren) {
             beginInstallSession();
             setIsInstallerOpen(true);
         }
-    }, [beginInstallSession, showError]);
+    };
 
     useEffect(() => {
         let isDisposed = false;
@@ -236,11 +236,21 @@ export function TtsInstallerContextProvider(props: PropsWithChildren) {
             });
         });
 
+        eventListener.on("tts:update-available", (event) => {
+            if (isDisposed) {
+                return;
+            }
+
+            showInfo({
+                message: `HonkTTS update available: ${event.latestVersion} (installed: ${event.installedVersion})`,
+            });
+        });
+
         return () => {
             isDisposed = true;
             eventListener.disconnect();
         };
-    }, [beginInstallSession, loadStatus, showError]);
+    }, []);
 
     const status = ttsState?.status ?? null;
     const isBusy = status !== null && INSTALL_SESSION_BUSY_STATUSES.has(status);
