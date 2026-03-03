@@ -58,10 +58,11 @@ export function TtsPreferencesContextProvider(props: PropsWithChildren) {
                 code: "TTS_STATUS_FETCH_FAILED",
                 technicalDetails: result.error ?? "Unknown backend error.",
             });
-            return;
+            return null;
         }
 
         setTtsState(result.data);
+        return result.data;
     };
 
     useEffect(() => {
@@ -69,7 +70,11 @@ export function TtsPreferencesContextProvider(props: PropsWithChildren) {
 
         void (async () => {
             try {
-                await loadStatus();
+                const state = await loadStatus();
+                if (!isDisposed && state && INSTALLED_STATUSES.has(state.status)) {
+                    const api = new TtsApi();
+                    await api.checkForUpdates();
+                }
             } catch (error: unknown) {
                 if (!isDisposed) {
                     showError({
