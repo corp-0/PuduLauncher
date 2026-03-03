@@ -53,6 +53,7 @@ namespace PuduLauncher;
 [JsonSerializable(typeof(global::PuduLauncher.Models.Events.TimerEvent))]
 [JsonSerializable(typeof(global::PuduLauncher.Models.Events.TtsInstallOutputEvent))]
 [JsonSerializable(typeof(global::PuduLauncher.Models.Events.TtsStatusChangedEvent))]
+[JsonSerializable(typeof(global::PuduLauncher.Models.Events.TtsUpdateAvailableEvent))]
 [JsonSerializable(typeof(global::PuduLauncher.Models.Game.GameServer))]
 [JsonSerializable(typeof(global::PuduLauncher.Models.Installations.Download))]
 [JsonSerializable(typeof(global::PuduLauncher.Models.Installations.DownloadStartRequest))]
