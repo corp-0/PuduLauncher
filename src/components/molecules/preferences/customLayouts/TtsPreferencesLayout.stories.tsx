@@ -50,6 +50,8 @@ const meta = {
         canStartServer: false,
         canStopServer: false,
         isInstalled: false,
+        updateAvailable: false,
+        latestVersion: null,
         onInstall: async () => undefined,
         onCheckForUpdates: async () => undefined,
         onStartServer: async () => undefined,
@@ -97,6 +99,17 @@ export const RunningState: Story = {
         isInstalled: true,
         canStartServer: false,
         canStopServer: true,
+    },
+};
+
+export const UpdateAvailable: Story = {
+    args: {
+        status: TTS_STATUS.Installed,
+        isInstalled: true,
+        updateAvailable: true,
+        latestVersion: "1.0.1",
+        canStartServer: true,
+        canStopServer: false,
     },
 };
 
