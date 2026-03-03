@@ -31,6 +31,8 @@
     <!-- Trimming Configuration -->
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>full</TrimMode>
+    <!-- .NET 10 preview SDKs may lack ASP.NET prune package data -->
+    <AllowMissingPrunePackageData>true</AllowMissingPrunePackageData>
 
     <!-- Assembly Name for Tauri Sidecar -->
     <AssemblyName>PuduLauncher</AssemblyName>
