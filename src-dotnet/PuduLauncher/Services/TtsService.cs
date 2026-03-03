@@ -11,6 +11,7 @@ public class TtsService : ITtsService, IDisposable
     private readonly ITtsVersionService _versionService;
     private readonly ITtsInstallService _installService;
     private readonly ITtsServerService _serverService;
+    private readonly TtsUpdateChecker _updateChecker;
     private readonly IPreferencesService _preferencesService;
     private readonly IEventPublisher _eventPublisher;
     private readonly IErrorDisplayServer _errorDisplayServer;
@@ -21,7 +22,6 @@ public class TtsService : ITtsService, IDisposable
 
     private TtsStatus _status = TtsStatus.NotInstalled;
     private TtsManifest? _manifest;
-    private string? _latestVersion;
     private string? _errorMessage;
 
     public TtsService(
@@ -32,7 +32,8 @@ public class TtsService : ITtsService, IDisposable
         IEventPublisher eventPublisher,
         IErrorDisplayServer errorDisplayServer,
         IHostApplicationLifetime hostApplicationLifetime,
-        ILogger<TtsService> logger)
+        ILogger<TtsService> logger,
+        ILoggerFactory loggerFactory)
     {
         _versionService = versionService;
         _installService = installService;
@@ -41,6 +42,8 @@ public class TtsService : ITtsService, IDisposable
         _eventPublisher = eventPublisher;
         _errorDisplayServer = errorDisplayServer;
         _logger = logger;
+        _updateChecker = new TtsUpdateChecker(versionService, eventPublisher,
+            loggerFactory.CreateLogger<TtsUpdateChecker>());
         hostApplicationLifetime.ApplicationStopping.Register(() => _shutdownCts.Cancel());
 
         var prefs = _preferencesService.GetPreferences();
@@ -51,10 +54,12 @@ public class TtsService : ITtsService, IDisposable
             _status = TtsStatus.Installed;
         }
 
-        if (prefs.Tts.Enabled && prefs.Tts.AutoStartOnLaunch && _status == TtsStatus.Installed)
+        if (prefs.Tts is { Enabled: true, AutoStartOnLaunch: true } && _status == TtsStatus.Installed)
         {
             _ = Task.Run(() => StartServerAsync());
         }
+
+        _updateChecker.StartPolling(() => _manifest?.InstallerVersion, _shutdownCts.Token);
     }
 
     public TtsState GetState()
@@ -64,10 +69,8 @@ public class TtsService : ITtsService, IDisposable
         {
             Status = _status,
             InstalledVersion = _manifest?.InstallerVersion,
-            LatestVersion = _latestVersion,
-            UpdateAvailable = _latestVersion != null
-                              && _manifest != null
-                              && _latestVersion != _manifest.InstallerVersion,
+            LatestVersion = _updateChecker.LatestVersion,
+            UpdateAvailable = _updateChecker.IsNewerVersionAvailable(_manifest?.InstallerVersion),
             InstallPath = prefs.Tts.InstallPath,
             ErrorMessage = _errorMessage
         };
@@ -81,11 +84,7 @@ public class TtsService : ITtsService, IDisposable
 
         try
         {
-            var release = await _versionService.FetchLatestReleaseAsync(operationCt);
-            _latestVersion = release.TagName;
-            _logger.LogInformation("Latest TTS version: {Version}, installed: {Installed}",
-                _latestVersion, _manifest?.InstallerVersion ?? "none");
-
+            await _updateChecker.CheckForUpdatesAsync(_manifest?.InstallerVersion, operationCt);
             await SetStatusAsync(_manifest != null ? TtsStatus.Installed : TtsStatus.NotInstalled);
         }
         catch (Exception ex)
@@ -119,42 +118,19 @@ public class TtsService : ITtsService, IDisposable
                 await _serverService.StopAsync(installPath, operationCt);
             }
 
-            // Fetch latest release
-            await SetStatusAsync(TtsStatus.CheckingForUpdates);
-            var release = await _versionService.FetchLatestReleaseAsync(operationCt);
-            _latestVersion = release.TagName;
-
-            string assetName = _versionService.GetPlatformAssetName();
-            var asset = release.Assets.FirstOrDefault(a =>
-                a.Name.Equals(assetName, StringComparison.OrdinalIgnoreCase))
-                ?? throw new InvalidOperationException(
-                    $"No asset '{assetName}' found in release {release.TagName}");
-
-            // Download
-            await SetStatusAsync(TtsStatus.Downloading);
-            string tempDir = Path.Combine(Path.GetTempPath(), $"pudu-tts-{Guid.NewGuid():N}");
-            Directory.CreateDirectory(tempDir);
+            TtsGitHubAsset asset = await FetchLatestRelease(operationCt);
+            var tempDir = await DownloadRelease();
 
             try
             {
-                string zipPath = Path.Combine(tempDir, "tts-installer.zip");
-                await _installService.DownloadInstallerAsync(asset.BrowserDownloadUrl, zipPath, operationCt);
-
-                // Extract and run installer
-                string extractDir = Path.Combine(tempDir, "extracted");
-                ZipFile.ExtractToDirectory(zipPath, extractDir);
-
-                await SetStatusAsync(TtsStatus.Installing);
-                await _installService.RunInstallerAsync(extractDir, installPath, operationCt);
-
-                // Reload manifest
+                await ExtractAndPrepareInstaller(tempDir, asset, installPath, operationCt);
                 _manifest = _versionService.LoadManifest(installPath);
 
                 if (_manifest != null)
                 {
                     installCompleted = true;
                     await SetStatusAsync(TtsStatus.Installed, "Installation complete");
-                    shouldAutoStart = prefs.Tts.Enabled && prefs.Tts.AutoStartOnLaunch;
+                    shouldAutoStart = prefs.Tts is { Enabled: true, AutoStartOnLaunch: true };
                 }
                 else
                 {
@@ -177,7 +153,7 @@ public class TtsService : ITtsService, IDisposable
         {
             _logger.LogError(ex, "TTS installation failed");
             await SetStatusAsync(TtsStatus.Error, ex.Message);
-            await _errorDisplayServer.ShowExceptionAsync(ex, "TTS", "TTS installation failed");
+            await _errorDisplayServer.ShowExceptionAsync(ex, "TTS", "TTS installation failed", cancellationToken: operationCt);
         }
         finally
         {
@@ -188,8 +164,42 @@ public class TtsService : ITtsService, IDisposable
         // immediately once install is confirmed. StartServerAsync acquires its own lock.
         if (shouldAutoStart)
         {
-            _ = Task.Run(() => StartServerAsync());
+            _ = Task.Run(() => StartServerAsync(operationCt), ct);
         }
+    }
+
+    private async Task ExtractAndPrepareInstaller(string tempDir, TtsGitHubAsset asset,
+        string installPath, CancellationToken operationCt)
+    {
+        string zipPath = Path.Combine(tempDir, "tts-installer.zip");
+        await _installService.DownloadInstallerAsync(asset.BrowserDownloadUrl, zipPath, operationCt);
+
+        string extractDir = Path.Combine(tempDir, "extracted");
+        await ZipFile.ExtractToDirectoryAsync(zipPath, extractDir, operationCt);
+
+        await SetStatusAsync(TtsStatus.Installing);
+        await _installService.RunInstallerAsync(extractDir, installPath, operationCt);
+    }
+
+    private async Task<string> DownloadRelease()
+    {
+        await SetStatusAsync(TtsStatus.Downloading);
+        string tempDir = Path.Combine(Path.GetTempPath(), $"pudu-tts-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        return tempDir;
+    }
+
+    private async Task<TtsGitHubAsset> FetchLatestRelease(CancellationToken operationCt)
+    {
+        await SetStatusAsync(TtsStatus.CheckingForUpdates);
+        TtsGitHubRelease release = await _versionService.FetchLatestReleaseAsync(operationCt);
+
+        string assetName = _versionService.GetPlatformAssetName();
+        TtsGitHubAsset asset = release.Assets.FirstOrDefault(a =>
+                                   a.Name.Equals(assetName, StringComparison.OrdinalIgnoreCase))
+                               ?? throw new InvalidOperationException(
+                                   $"No asset '{assetName}' found in release {release.TagName}");
+        return asset;
     }
 
     public async Task UninstallAsync(CancellationToken ct = default)
@@ -215,14 +225,13 @@ public class TtsService : ITtsService, IDisposable
             }
 
             _manifest = null;
-            _latestVersion = null;
             await SetStatusAsync(TtsStatus.NotInstalled, "TTS uninstalled");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "TTS uninstall failed");
             await SetStatusAsync(TtsStatus.Error, ex.Message);
-            await _errorDisplayServer.ShowExceptionAsync(ex, "TTS", "TTS uninstall failed");
+            await _errorDisplayServer.ShowExceptionAsync(ex, "TTS", "TTS uninstall failed", cancellationToken: operationCt);
         }
         finally
         {
@@ -263,7 +272,7 @@ public class TtsService : ITtsService, IDisposable
         {
             _logger.LogError(ex, "Failed to start TTS server");
             await SetStatusAsync(TtsStatus.Error, ex.Message);
-            await _errorDisplayServer.ShowExceptionAsync(ex, "TTS", "Failed to start TTS server");
+            await _errorDisplayServer.ShowExceptionAsync(ex, "TTS", "Failed to start TTS server", cancellationToken: operationCt);
         }
         finally
         {
@@ -342,8 +351,10 @@ public class TtsService : ITtsService, IDisposable
     public void Dispose()
     {
         _shutdownCts.Cancel();
+        _updateChecker.Dispose();
         _shutdownCts.Dispose();
         _serverService.Dispose();
         _operationLock.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
