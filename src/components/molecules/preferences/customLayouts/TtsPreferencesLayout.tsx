@@ -1,25 +1,9 @@
 import { Alert, Button, Chip, CircularProgress, Stack, Typography } from "@mui/joy";
-import { useCallback, useEffect, useState } from "react";
 import { TTS_STATUS, TTS_STATUS_LABELS } from "../../../../constants/ttsStatus";
-import { useFeedbackContext } from "../../../../contextProviders/FeedbackContextProvider";
-import { EventListener } from "../../../../pudu/events/event-listener";
-import { TtsApi, type Preferences, type TtsState } from "../../../../pudu/generated";
+import { useTtsPreferencesContext } from "../../../../contextProviders/TtsPreferencesContextProvider";
+import type { Preferences } from "../../../../pudu/generated";
 import PreferencePathFieldRow from "../PreferencePathFieldRow";
 import PreferenceToggleFieldRow from "../PreferenceToggleFieldRow";
-
-const INSTALL_BUSY_STATUSES = new Set<number>([
-    TTS_STATUS.CheckingForUpdates,
-    TTS_STATUS.Downloading,
-    TTS_STATUS.Installing,
-    TTS_STATUS.ServerStarting,
-]);
-
-const INSTALLED_STATUSES = new Set<number>([
-    TTS_STATUS.Installed,
-    TTS_STATUS.ServerRunning,
-    TTS_STATUS.ServerStopped,
-    TTS_STATUS.ServerStarting,
-]);
 
 function getStatusChipColor(status: number | null): "neutral" | "success" | "warning" | "danger" | "primary" {
     if (status === TTS_STATUS.Error) {
@@ -41,32 +25,15 @@ function getStatusChipColor(status: number | null): "neutral" | "success" | "war
     return "neutral";
 }
 
-export interface TtsPreferencesLayoutViewProps {
+interface TtsPreferencesLayoutProps {
     categoryKey: string;
     preferences: Preferences;
     updateField: (categoryKey: string, fieldKey: string, value: unknown) => void;
-    isLoadingState: boolean;
-    status: number | null;
-    statusMessage?: string | null;
-    errorMessage?: string | null;
-    isBusy: boolean;
-    canStartServer: boolean;
-    canStopServer: boolean;
-    isInstalled: boolean;
-    onInstall: () => Promise<void>;
-    updateAvailable: boolean;
-    latestVersion?: string | null;
-    onCheckForUpdates: () => Promise<void>;
-    onStartServer: () => Promise<void>;
-    onStopServer: () => Promise<void>;
-    onUninstall: () => Promise<void>;
 }
 
-export function TtsPreferencesLayoutView(props: TtsPreferencesLayoutViewProps) {
+export default function TtsPreferencesLayout(props: TtsPreferencesLayoutProps) {
+    const { categoryKey, preferences, updateField } = props;
     const {
-        categoryKey,
-        preferences,
-        updateField,
         isLoadingState,
         status,
         errorMessage,
@@ -76,12 +43,8 @@ export function TtsPreferencesLayoutView(props: TtsPreferencesLayoutViewProps) {
         isInstalled,
         updateAvailable,
         latestVersion,
-        onInstall,
-        onCheckForUpdates,
-        onStartServer,
-        onStopServer,
-        onUninstall,
-    } = props;
+        runCommand,
+    } = useTtsPreferencesContext();
 
     const statusLabel = status !== null
         ? (TTS_STATUS_LABELS[status] ?? `Status ${status}`)
@@ -113,7 +76,13 @@ export function TtsPreferencesLayoutView(props: TtsPreferencesLayoutViewProps) {
                     color="warning"
                     variant="soft"
                     endDecorator={
-                        <Button size="sm" variant="solid" color="primary" disabled={isBusy} onClick={() => void onInstall()}>
+                        <Button
+                            size="sm"
+                            variant="solid"
+                            color="primary"
+                            disabled={isBusy}
+                            onClick={() => void runCommand("install")}
+                        >
                             Update now
                         </Button>
                     }
@@ -142,156 +111,22 @@ export function TtsPreferencesLayoutView(props: TtsPreferencesLayoutViewProps) {
             />
 
             <Stack direction="row" spacing={1} sx={{ pt: 0.5, flexWrap: "wrap" }}>
-                <Button size="sm" disabled={isBusy} onClick={() => void onInstall()}>
+                <Button size="sm" disabled={isBusy} onClick={() => void runCommand("install")}>
                     {installButtonLabel}
                 </Button>
-                <Button size="sm" variant="outlined" disabled={isBusy} onClick={() => void onCheckForUpdates()}>
+                <Button size="sm" variant="outlined" disabled={isBusy} onClick={() => void runCommand("checkForUpdates")}>
                     Check updates
                 </Button>
-                <Button size="sm" variant="outlined" disabled={isBusy || !canStartServer} onClick={() => void onStartServer()}>
+                <Button size="sm" variant="outlined" disabled={isBusy || !canStartServer} onClick={() => void runCommand("startServer")}>
                     Start server
                 </Button>
-                <Button size="sm" variant="outlined" disabled={isBusy || !canStopServer} onClick={() => void onStopServer()}>
+                <Button size="sm" variant="outlined" disabled={isBusy || !canStopServer} onClick={() => void runCommand("stopServer")}>
                     Stop server
                 </Button>
-                <Button size="sm" color="danger" variant="soft" disabled={isBusy || !isInstalled} onClick={() => void onUninstall()}>
+                <Button size="sm" color="danger" variant="soft" disabled={isBusy || !isInstalled} onClick={() => void runCommand("uninstall")}>
                     Uninstall
                 </Button>
             </Stack>
         </Stack>
-    );
-}
-
-interface TtsPreferencesLayoutProps {
-    categoryKey: string;
-    preferences: Preferences;
-    updateField: (categoryKey: string, fieldKey: string, value: unknown) => void;
-}
-
-export default function TtsPreferencesLayout(props: TtsPreferencesLayoutProps) {
-    const { categoryKey, preferences, updateField } = props;
-    const { showError } = useFeedbackContext();
-    const [ttsState, setTtsState] = useState<TtsState | null>(null);
-    const [isLoadingState, setIsLoadingState] = useState(true);
-    const [isRunningCommand, setIsRunningCommand] = useState(false);
-    const [statusMessage, setStatusMessage] = useState<string | null>(null);
-
-    const loadStatus = useCallback(async () => {
-        const api = new TtsApi();
-        const result = await api.getStatus();
-        if (!result.success || !result.data) {
-            showError({
-                source: "frontend.preferences.tts.get-status",
-                userMessage: "Failed to load TTS status.",
-                code: "TTS_STATUS_FETCH_FAILED",
-                technicalDetails: result.error ?? "Unknown backend error.",
-            });
-            return;
-        }
-
-        setTtsState(result.data);
-    }, [showError]);
-
-    useEffect(() => {
-        let isDisposed = false;
-
-        void (async () => {
-            try {
-                await loadStatus();
-            } catch (error: unknown) {
-                if (!isDisposed) {
-                    showError({
-                        source: "frontend.preferences.tts.get-status",
-                        userMessage: "Failed to load TTS status.",
-                        code: "TTS_STATUS_FETCH_EXCEPTION",
-                        technicalDetails: error instanceof Error ? error.toString() : String(error),
-                    });
-                }
-            } finally {
-                if (!isDisposed) {
-                    setIsLoadingState(false);
-                }
-            }
-        })();
-
-        const eventListener = new EventListener();
-        eventListener.on("tts:status-changed", (event) => {
-            if (isDisposed) {
-                return;
-            }
-
-            setStatusMessage(event.message ?? null);
-            setTtsState((previous) => {
-                if (previous === null) {
-                    return previous;
-                }
-
-                return {
-                    ...previous,
-                    status: event.status,
-                    errorMessage: event.status === TTS_STATUS.Error
-                        ? event.message ?? previous.errorMessage
-                        : previous.errorMessage,
-                };
-            });
-            void loadStatus();
-        });
-
-        return () => {
-            isDisposed = true;
-            eventListener.disconnect();
-        };
-    }, [loadStatus, showError]);
-
-    const runCommand = async (
-        commandName: string,
-        run: (api: TtsApi) => Promise<{ success: boolean; error?: string | null }>,
-    ) => {
-        if (isRunningCommand) {
-            return;
-        }
-
-        setIsRunningCommand(true);
-        const api = new TtsApi();
-        const result = await run(api);
-        setIsRunningCommand(false);
-
-        if (!result.success) {
-            showError({
-                source: `frontend.preferences.tts.${commandName}`,
-                userMessage: "Failed to execute TTS action.",
-                code: "TTS_COMMAND_FAILED",
-                technicalDetails: result.error ?? "Unknown backend error.",
-            });
-        }
-    };
-
-    const status = ttsState?.status ?? null;
-    const isBusy = isRunningCommand || (status !== null && INSTALL_BUSY_STATUSES.has(status));
-    const canStartServer = status === TTS_STATUS.Installed || status === TTS_STATUS.ServerStopped;
-    const canStopServer = status === TTS_STATUS.ServerRunning || status === TTS_STATUS.ServerStarting;
-    const isInstalled = status !== null && INSTALLED_STATUSES.has(status);
-
-    return (
-        <TtsPreferencesLayoutView
-            categoryKey={categoryKey}
-            preferences={preferences}
-            updateField={updateField}
-            isLoadingState={isLoadingState}
-            status={status}
-            statusMessage={statusMessage}
-            errorMessage={ttsState?.errorMessage}
-            isBusy={isBusy}
-            canStartServer={canStartServer}
-            canStopServer={canStopServer}
-            isInstalled={isInstalled}
-            updateAvailable={ttsState?.updateAvailable ?? false}
-            latestVersion={ttsState?.latestVersion}
-            onInstall={async () => runCommand("tts.install", (api) => api.install())}
-            onCheckForUpdates={async () => runCommand("tts.check-for-updates", (api) => api.checkForUpdates())}
-            onStartServer={async () => runCommand("tts.start-server", (api) => api.startServer())}
-            onStopServer={async () => runCommand("tts.stop-server", (api) => api.stopServer())}
-            onUninstall={async () => runCommand("tts.uninstall", (api) => api.uninstall())}
-        />
     );
 }
