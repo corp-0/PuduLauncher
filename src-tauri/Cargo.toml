@@ -30,8 +30,3 @@ log = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["full"] }
-
-# Workaround for Rust >=1.87 linker regression with `ring` crate assembly objects
-# https://github.com/rust-lang/rust/issues/142752
-[profile.release]
-lto = "thin"
