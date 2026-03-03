@@ -54,6 +54,8 @@ export interface TtsPreferencesLayoutViewProps {
     canStopServer: boolean;
     isInstalled: boolean;
     onInstall: () => Promise<void>;
+    updateAvailable: boolean;
+    latestVersion?: string | null;
     onCheckForUpdates: () => Promise<void>;
     onStartServer: () => Promise<void>;
     onStopServer: () => Promise<void>;
@@ -72,6 +74,8 @@ export function TtsPreferencesLayoutView(props: TtsPreferencesLayoutViewProps) {
         canStartServer,
         canStopServer,
         isInstalled,
+        updateAvailable,
+        latestVersion,
         onInstall,
         onCheckForUpdates,
         onStartServer,
@@ -101,6 +105,20 @@ export function TtsPreferencesLayoutView(props: TtsPreferencesLayoutViewProps) {
             {errorMessage && (
                 <Alert color="danger" variant="soft">
                     {errorMessage}
+                </Alert>
+            )}
+
+            {updateAvailable && (
+                <Alert
+                    color="warning"
+                    variant="soft"
+                    endDecorator={
+                        <Button size="sm" variant="solid" color="primary" disabled={isBusy} onClick={() => void onInstall()}>
+                            Update now
+                        </Button>
+                    }
+                >
+                    A new version{latestVersion ? ` (${latestVersion})` : ""} is available.
                 </Alert>
             )}
 
@@ -267,6 +285,8 @@ export default function TtsPreferencesLayout(props: TtsPreferencesLayoutProps) {
             canStartServer={canStartServer}
             canStopServer={canStopServer}
             isInstalled={isInstalled}
+            updateAvailable={ttsState?.updateAvailable ?? false}
+            latestVersion={ttsState?.latestVersion}
             onInstall={async () => runCommand("tts.install", (api) => api.install())}
             onCheckForUpdates={async () => runCommand("tts.check-for-updates", (api) => api.checkForUpdates())}
             onStartServer={async () => runCommand("tts.start-server", (api) => api.startServer())}
