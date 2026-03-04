@@ -141,6 +141,16 @@ export class EventListener {
     }
   }
 
+  injectEvent<TEventType extends PuduEventType>(
+    eventType: TEventType,
+    data: PuduEventMap[TEventType]
+  ): void {
+    const handlers = this.handlers.get(eventType);
+    if (handlers) {
+      handlers.forEach((handler) => handler(data as PuduEvent));
+    }
+  }
+
   disconnect(): void {
     this.shouldReconnect = false;
     this.connectionSession += 1;

@@ -288,7 +288,7 @@ function generateApiClient(controller, knownTypeNames) {
     const importList = [...importTypes].sort().join(", ");
     output += `import type { ${importList} } from './types';\n`;
   }
-  output += "import { getSidecarBaseUrl } from '../sidecar';\n\n";
+  output += "import { puduFetch } from '../pudu-fetch';\n\n";
 
   const apiClassName = toPascalCase(controller.name) + "Api";
 
@@ -302,10 +302,9 @@ function generateApiClient(controller, knownTypeNames) {
 
     if (params.length === 0) {
       output += `  async ${tsMethodName}(): Promise<${tsReturnType}> {\n`;
-      output += "    const baseUrl = await getSidecarBaseUrl();\n";
       output += "    let response: Response;\n";
       output += "    try {\n";
-      output += `      response = await fetch(\`\${baseUrl}/api/${controller.name}/${cmd.name}\`, {\n`;
+      output += `      response = await puduFetch(\`/api/${controller.name}/${cmd.name}\`, {\n`;
       output += "        method: 'POST',\n";
       output += "      });\n";
       output += "    } catch (error) {\n";
@@ -313,10 +312,9 @@ function generateApiClient(controller, knownTypeNames) {
       output += "    }\n";
     } else if (params.length === 1) {
       output += `  async ${tsMethodName}(${params[0].name}: ${params[0].type}): Promise<${tsReturnType}> {\n`;
-      output += "    const baseUrl = await getSidecarBaseUrl();\n";
       output += "    let response: Response;\n";
       output += "    try {\n";
-      output += `      response = await fetch(\`\${baseUrl}/api/${controller.name}/${cmd.name}\`, {\n`;
+      output += `      response = await puduFetch(\`/api/${controller.name}/${cmd.name}\`, {\n`;
       output += "        method: 'POST',\n";
       output += "        headers: { 'Content-Type': 'application/json' },\n";
       output += `        body: JSON.stringify(${params[0].name}),\n`;
@@ -327,10 +325,9 @@ function generateApiClient(controller, knownTypeNames) {
     } else {
       const paramSig = params.map(p => `${p.name}: ${p.type}`).join("; ");
       output += `  async ${tsMethodName}(params: { ${paramSig} }): Promise<${tsReturnType}> {\n`;
-      output += "    const baseUrl = await getSidecarBaseUrl();\n";
       output += "    let response: Response;\n";
       output += "    try {\n";
-      output += `      response = await fetch(\`\${baseUrl}/api/${controller.name}/${cmd.name}\`, {\n`;
+      output += `      response = await puduFetch(\`/api/${controller.name}/${cmd.name}\`, {\n`;
       output += "        method: 'POST',\n";
       output += "        headers: { 'Content-Type': 'application/json' },\n";
       output += "        body: JSON.stringify(params),\n";

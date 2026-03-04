@@ -2,6 +2,7 @@ import { createContext, type PropsWithChildren, useContext, useEffect, useRef, u
 import type { Preferences } from "../pudu/generated";
 import { InstallationsApi, PreferencesApi } from "../pudu/generated";
 import { useFeedbackContext } from "./FeedbackContextProvider";
+import { useStableRef } from "../hooks/useStableRef";
 
 interface PreferencesContextValue {
     preferences: Preferences | null;
@@ -18,6 +19,7 @@ const DEBOUNCE_MS = 500;
 export function PreferencesContextProvider(props: PropsWithChildren) {
     const { children } = props;
     const { showError } = useFeedbackContext();
+    const showErrorRef = useStableRef(showError);
     const [preferences, setPreferences] = useState<Preferences | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -33,7 +35,7 @@ export function PreferencesContextProvider(props: PropsWithChildren) {
                     setPreferences(result.data);
                     latestPrefsRef.current = result.data;
                 } else {
-                    showError({
+                    showErrorRef.current({
                         source: "frontend.preferences.get-preferences",
                         userMessage: "Failed to load preferences.",
                         code: "PREFERENCES_FETCH_FAILED",
@@ -41,7 +43,7 @@ export function PreferencesContextProvider(props: PropsWithChildren) {
                     });
                 }
             } catch (error: unknown) {
-                showError({
+                showErrorRef.current({
                     source: "frontend.preferences.get-preferences",
                     userMessage: "Failed to load preferences.",
                     code: "PREFERENCES_FETCH_EXCEPTION",
@@ -51,7 +53,7 @@ export function PreferencesContextProvider(props: PropsWithChildren) {
                 setIsLoading(false);
             }
         })();
-    }, [showError]);
+    }, []);
 
     const persistPreferences = (prefs: Preferences) => {
         if (debounceRef.current !== null) {
@@ -66,7 +68,7 @@ export function PreferencesContextProvider(props: PropsWithChildren) {
                 try {
                     const result = await api.updatePreferences(prefs);
                     if (!result.success) {
-                        showError({
+                        showErrorRef.current({
                             source: "frontend.preferences.update-preferences",
                             userMessage: "Failed to save preferences.",
                             code: "PREFERENCES_UPDATE_FAILED",
@@ -74,7 +76,7 @@ export function PreferencesContextProvider(props: PropsWithChildren) {
                         });
                     }
                 } catch (error: unknown) {
-                    showError({
+                    showErrorRef.current({
                         source: "frontend.preferences.update-preferences",
                         userMessage: "Failed to save preferences.",
                         code: "PREFERENCES_UPDATE_EXCEPTION",
@@ -115,7 +117,7 @@ export function PreferencesContextProvider(props: PropsWithChildren) {
                     return updated;
                 });
             } else {
-                showError({
+                showErrorRef.current({
                     source: "frontend.preferences.move-installations",
                     userMessage: "Failed to move installations.",
                     code: "MOVE_INSTALLATIONS_FAILED",
@@ -123,7 +125,7 @@ export function PreferencesContextProvider(props: PropsWithChildren) {
                 });
             }
         } catch (error: unknown) {
-            showError({
+            showErrorRef.current({
                 source: "frontend.preferences.move-installations",
                 userMessage: "Failed to move installations.",
                 code: "MOVE_INSTALLATIONS_EXCEPTION",

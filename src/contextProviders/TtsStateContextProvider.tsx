@@ -1,6 +1,8 @@
 import { createContext, type PropsWithChildren, useContext, useEffect, useState } from "react";
 import { TTS_STATUS } from "../constants/ttsStatus";
+import { devBridge } from "../devtools/bridge";
 import { EventListener } from "../pudu/events/event-listener";
+import type { PuduEventMap, PuduEventType } from "../pudu/generated";
 import { TtsApi, type TtsState } from "../pudu/generated";
 import { useFeedbackContext } from "./FeedbackContextProvider";
 
@@ -65,6 +67,13 @@ export function TtsStateContextProvider(props: PropsWithChildren) {
 
         const eventListener = new EventListener();
 
+        let unregisterInjector: (() => void) | undefined;
+        if (devBridge) {
+            unregisterInjector = devBridge.registerEventInjector((eventType, data) => {
+                eventListener.injectEvent(eventType as PuduEventType, data as PuduEventMap[PuduEventType]);
+            });
+        }
+
         eventListener.on("tts:status-changed", (event) => {
             if (isDisposed) {
                 return;
@@ -127,9 +136,24 @@ export function TtsStateContextProvider(props: PropsWithChildren) {
 
         return () => {
             isDisposed = true;
+            unregisterInjector?.();
             eventListener.disconnect();
         };
     }, []);
+
+    useEffect(() => {
+        if (!devBridge) return;
+        return devBridge.registerStateSource("tts", () => ({
+            status: ttsState?.status ?? null,
+            errorMessage: ttsState?.errorMessage ?? null,
+            updateAvailable: ttsState?.updateAvailable ?? false,
+            installedVersion: ttsState?.installedVersion ?? null,
+            latestVersion: ttsState?.latestVersion ?? null,
+            installLogsCount: installLogs.length,
+            statusMessage,
+            isLoadingState,
+        }));
+    }, [ttsState, statusMessage, isLoadingState, installLogs.length]);
 
     const clearInstallLogs = () => {
         setInstallLogs([]);

@@ -77,13 +77,19 @@ export function ThemeProvider(props: PropsWithChildren) {
             return;
         }
 
+        let cancelled = false;
+
         void (async () => {
             const api = new PreferencesApi();
             try {
                 const result = await api.getPreferences();
+                if (cancelled) return;
                 if (!result.success || !result.data) {
                     return;
                 }
+
+                // Re-check: if a theme was stored while we were fetching, don't override it
+                if (readStoredThemeId() !== null) return;
 
                 const backendThemeId = parseThemeId(result.data.launcher?.theme);
                 if (backendThemeId) {
@@ -93,6 +99,8 @@ export function ThemeProvider(props: PropsWithChildren) {
                 // localStorage-first fallback: keep current theme when backend is unavailable
             }
         })();
+
+        return () => { cancelled = true; };
     }, []);
 
     return (

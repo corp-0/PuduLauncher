@@ -73,3 +73,6 @@ src/pudu/generated/
 *storybook.log
 storybook-static
 src-tauri/imgui.ini
+
+# Git worktrees
+.worktrees/

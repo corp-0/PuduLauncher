@@ -7,6 +7,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { log } from "../pudu/log";
 import { FeedbackContext } from "./FeedbackContextProvider";
 import UpdateLayout from "../components/layouts/UpdateLayout";
+import { useStableRef } from "../hooks/useStableRef";
 
 type UpdateStatus = "checking" | "no-update" | "update-available" | "downloading" | "installing" | "error";
 
@@ -28,6 +29,7 @@ export function UpdateContextProvider(props: PropsWithChildren) {
     const { children } = props;
     const feedbackContext = useContext(FeedbackContext);
     const showError = feedbackContext?.showError ?? (() => {});
+    const showErrorRef = useStableRef(showError);
 
     const [status, setStatus] = useState<UpdateStatus>("checking");
     const [currentVersion, setCurrentVersion] = useState("");
@@ -64,7 +66,7 @@ export function UpdateContextProvider(props: PropsWithChildren) {
                 const detail = error instanceof Error ? error.message : String(error);
                 log.error(`Update check failed: ${detail}`);
                 setStatus("no-update");
-                showError({
+                showErrorRef.current({
                     source: "frontend.updater.check",
                     userMessage: "Failed to check for updates.",
                     code: "UPDATE_CHECK_FAILED",
@@ -75,7 +77,7 @@ export function UpdateContextProvider(props: PropsWithChildren) {
         })();
 
         return () => { disposed = true; };
-    }, [showError]);
+    }, []);
 
     const startUpdate = () => {
         if (!pendingUpdate) return;
@@ -107,7 +109,7 @@ export function UpdateContextProvider(props: PropsWithChildren) {
                 const detail = error instanceof Error ? error.message : String(error);
                 log.error(`Update install failed: ${detail}`);
                 setStatus("error");
-                showError({
+                showErrorRef.current({
                     source: "frontend.updater.install",
                     userMessage: "Update failed. Please try downloading manually from the releases page.",
                     code: "UPDATE_INSTALL_FAILED",

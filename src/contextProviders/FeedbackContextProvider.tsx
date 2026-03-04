@@ -258,13 +258,20 @@ export function FeedbackContextProvider(props: PropsWithChildren) {
         }
     };
 
+    // Use refs to break circular deps: these effects should run once, not re-fire
+    // when callback references change due to parent re-renders.
+    const showFatalRef = useRef(showFatal);
+    showFatalRef.current = showFatal;
+    const pushErrorRef = useRef(pushError);
+    pushErrorRef.current = pushError;
+
     useEffect(() => {
         void (async () => {
             try {
                 await getSidecarPort();
                 setBackendReady(true);
             } catch (error) {
-                showFatal({
+                showFatalRef.current({
                     source: "frontend.sidecar",
                     userMessage: "The backend process did not start in time.",
                     code: "SIDECAR_TIMEOUT",
@@ -272,7 +279,7 @@ export function FeedbackContextProvider(props: PropsWithChildren) {
                 });
             }
         })();
-    }, [showFatal]);
+    }, []);
 
     useEffect(() => {
         if (!backendReady) return;
@@ -280,7 +287,7 @@ export function FeedbackContextProvider(props: PropsWithChildren) {
         const listener = new EventListener();
 
         listener.on("frontend:error", (event) => {
-            pushError(mapEventToDisplayItem(event));
+            pushErrorRef.current(mapEventToDisplayItem(event));
         });
 
         void (async () => {
@@ -290,7 +297,7 @@ export function FeedbackContextProvider(props: PropsWithChildren) {
                 if (!result.success || !result.data) return;
 
                 for (const error of result.data) {
-                    pushError(mapEventToDisplayItem(error));
+                    pushErrorRef.current(mapEventToDisplayItem(error));
                 }
             } catch {
                 // Ignore bootstrap errors here; this provider is itself error infrastructure.
@@ -300,7 +307,7 @@ export function FeedbackContextProvider(props: PropsWithChildren) {
         return () => {
             listener.disconnect();
         };
-    }, [backendReady, pushError]);
+    }, [backendReady]);
 
     // Catch unhandled frontend errors globally.
     useEffect(() => {
@@ -309,7 +316,7 @@ export function FeedbackContextProvider(props: PropsWithChildren) {
                 ? event.error.stack ?? event.error.message
                 : event.message;
 
-            showFatal({
+            showFatalRef.current({
                 source: "frontend.window-error",
                 userMessage: event.message || "Unhandled frontend error.",
                 code: "FRONTEND_UNHANDLED_ERROR",
@@ -323,7 +330,7 @@ export function FeedbackContextProvider(props: PropsWithChildren) {
                 ? reason.stack ?? reason.message
                 : String(reason);
 
-            showFatal({
+            showFatalRef.current({
                 source: "frontend.unhandled-rejection",
                 userMessage: "Unhandled promise rejection.",
                 code: "FRONTEND_UNHANDLED_REJECTION",
@@ -338,7 +345,7 @@ export function FeedbackContextProvider(props: PropsWithChildren) {
             window.removeEventListener("error", onError);
             window.removeEventListener("unhandledrejection", onUnhandledRejection);
         };
-    }, [showFatal]);
+    }, []);
 
     const value: FeedbackContextValue = {
         showError,
