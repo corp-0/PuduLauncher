@@ -12,6 +12,31 @@ export const TTS_STATUS = {
 
 export type TtsStatusCode = (typeof TTS_STATUS)[keyof typeof TTS_STATUS];
 
+export const TTS_BUSY_STATUSES = new Set<number>([
+    TTS_STATUS.CheckingForUpdates,
+    TTS_STATUS.Downloading,
+    TTS_STATUS.Installing,
+    TTS_STATUS.ServerStarting,
+]);
+
+export const TTS_INSTALLED_STATUSES = new Set<number>([
+    TTS_STATUS.Installed,
+    TTS_STATUS.ServerRunning,
+    TTS_STATUS.ServerStopped,
+    TTS_STATUS.ServerStarting,
+]);
+
+export const TTS_INSTALL_SESSION_START_STATUSES = new Set<number>([
+    TTS_STATUS.Downloading,
+    TTS_STATUS.Installing,
+]);
+
+export const TTS_INSTALL_SESSION_BUSY_STATUSES = new Set<number>([
+    TTS_STATUS.CheckingForUpdates,
+    TTS_STATUS.Downloading,
+    TTS_STATUS.Installing,
+]);
+
 export const TTS_STATUS_LABELS: Record<number, string> = {
     [TTS_STATUS.NotInstalled]: "Not installed",
     [TTS_STATUS.CheckingForUpdates]: "Checking for updates",

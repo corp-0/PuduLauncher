@@ -1,9 +1,8 @@
 import { createContext, type PropsWithChildren, useContext, useEffect, useRef, useState } from "react";
 import TtsInstallerLayout from "../components/layouts/tts/TtsInstallerLayout";
-import { TTS_STATUS, TTS_STATUS_LABELS } from "../constants/ttsStatus";
-import { EventListener } from "../pudu/events/event-listener";
-import { TtsApi, type TtsState } from "../pudu/generated";
+import { TTS_INSTALL_SESSION_BUSY_STATUSES, TTS_INSTALL_SESSION_START_STATUSES, TTS_STATUS, TTS_STATUS_LABELS } from "../constants/ttsStatus";
 import { useFeedbackContext } from "./FeedbackContextProvider";
+import { useTtsState } from "./TtsStateContextProvider";
 
 interface TtsInstallerContextValue {
     isInstallerOpen: boolean;
@@ -11,17 +10,6 @@ interface TtsInstallerContextValue {
 }
 
 const TtsInstallerContext = createContext<TtsInstallerContextValue | undefined>(undefined);
-
-const INSTALL_SESSION_START_STATUSES = new Set<number>([
-    TTS_STATUS.Downloading,
-    TTS_STATUS.Installing,
-]);
-
-const INSTALL_SESSION_BUSY_STATUSES = new Set<number>([
-    TTS_STATUS.CheckingForUpdates,
-    TTS_STATUS.Downloading,
-    TTS_STATUS.Installing,
-]);
 
 const INSTALL_STEPS = [
     { shortLabel: "Prepare", longLabel: "Preparing installer download", longRunning: false },
@@ -80,51 +68,28 @@ function inferStepFromLogLine(rawLine: string): number | null {
     return null;
 }
 
-function inferCurrentStep(status: number | null, installLogs: string[]): number {
-    const stepFromLogs = installLogs.reduce((maxStep, line) => {
-        const parsed = inferStepFromLogLine(line);
-        if (parsed === null) {
-            return maxStep;
-        }
-
-        return Math.max(maxStep, parsed);
-    }, 0);
-
-    let stepFromStatus = 1;
+function stepFromStatus(status: number | null): number {
     switch (status) {
-        case TTS_STATUS.CheckingForUpdates:
-            stepFromStatus = 1;
-            break;
-        case TTS_STATUS.Downloading:
-            stepFromStatus = 1;
-            break;
-        case TTS_STATUS.Installing:
-            stepFromStatus = Math.max(stepFromLogs, 2);
-            break;
         case TTS_STATUS.Installed:
-            stepFromStatus = INSTALL_STEP_LABELS.length;
-            break;
-        case TTS_STATUS.Error:
-            stepFromStatus = Math.max(stepFromLogs, 1);
-            break;
+            return INSTALL_STEP_LABELS.length;
+        case TTS_STATUS.Installing:
+            return 2;
         default:
-            stepFromStatus = Math.max(stepFromLogs, 1);
-            break;
+            return 1;
     }
-
-    return Math.min(Math.max(Math.max(stepFromLogs, stepFromStatus), 1), INSTALL_STEP_LABELS.length);
 }
 
 export function TtsInstallerContextProvider(props: PropsWithChildren) {
     const { children } = props;
-    const { showError, showSuccess, showInfo } = useFeedbackContext();
+    const { showSuccess, showInfo } = useFeedbackContext();
+    const { ttsState, status, statusMessage, installLogs, clearInstallLogs } = useTtsState();
 
-    const [ttsState, setTtsState] = useState<TtsState | null>(null);
-    const [statusMessage, setStatusMessage] = useState<string | null>(null);
-    const [installLogs, setInstallLogs] = useState<string[]>([]);
     const [isInstallerOpen, setIsInstallerOpen] = useState(false);
     const [maxReachedStep, setMaxReachedStep] = useState(1);
     const installSessionRef = useRef(false);
+    const prevStatusRef = useRef<number | null>(null);
+    const prevLogLengthRef = useRef(0);
+    const prevUpdateAvailableRef = useRef(false);
 
     const beginInstallSession = () => {
         if (installSessionRef.current) {
@@ -132,128 +97,66 @@ export function TtsInstallerContextProvider(props: PropsWithChildren) {
         }
 
         installSessionRef.current = true;
-        setInstallLogs([]);
-        setStatusMessage(null);
+        clearInstallLogs();
         setMaxReachedStep(1);
     };
 
-    const loadStatus = async () => {
-        const api = new TtsApi();
-        const result = await api.getStatus();
-
-        if (!result.success || !result.data) {
-            showError({
-                source: "frontend.tts-installer.get-status",
-                userMessage: "Failed to load installer status.",
-                code: "TTS_INSTALLER_STATUS_FETCH_FAILED",
-                technicalDetails: result.error ?? "Unknown backend error.",
-            });
+    // React to status changes
+    useEffect(() => {
+        if (status === null) {
             return;
         }
 
-        setTtsState(result.data);
-
-        if (INSTALL_SESSION_START_STATUSES.has(result.data.status)) {
+        if (TTS_INSTALL_SESSION_START_STATUSES.has(status)) {
             beginInstallSession();
             setIsInstallerOpen(true);
         }
-    };
 
+        if (installSessionRef.current && (
+            status === TTS_STATUS.Installed
+            || status === TTS_STATUS.NotInstalled
+            || status === TTS_STATUS.Error
+        )) {
+            setIsInstallerOpen(true);
+        }
+
+        if (status === TTS_STATUS.ServerRunning && prevStatusRef.current !== TTS_STATUS.ServerRunning) {
+            showSuccess({ message: "TTS server is running" });
+        }
+
+        setMaxReachedStep((prev) => Math.max(prev, stepFromStatus(status)));
+        prevStatusRef.current = status;
+    }, [status]);
+
+    // React to new install log lines
     useEffect(() => {
-        let isDisposed = false;
-
-        void (async () => {
-            try {
-                await loadStatus();
-            } catch (error: unknown) {
-                if (!isDisposed) {
-                    showError({
-                        source: "frontend.tts-installer.get-status",
-                        userMessage: "Failed to load installer status.",
-                        code: "TTS_INSTALLER_STATUS_FETCH_EXCEPTION",
-                        technicalDetails: error instanceof Error ? error.toString() : String(error),
-                    });
-                }
-            }
-        })();
-
-        const eventListener = new EventListener();
-
-        eventListener.on("tts:status-changed", (event) => {
-            if (isDisposed) {
-                return;
-            }
-
-            if (INSTALL_SESSION_START_STATUSES.has(event.status)) {
-                beginInstallSession();
-                setIsInstallerOpen(true);
-            }
-
-            if (installSessionRef.current && (
-                event.status === TTS_STATUS.Installed
-                || event.status === TTS_STATUS.NotInstalled
-                || event.status === TTS_STATUS.Error
-            )) {
-                setIsInstallerOpen(true);
-            }
-
-            if (event.status === TTS_STATUS.ServerRunning) {
-                showSuccess({ message: "TTS server is running" });
-            }
-
-            setStatusMessage(event.message ?? null);
-            setTtsState((previous) => {
-                if (previous === null) {
-                    return previous;
-                }
-
-                return {
-                    ...previous,
-                    status: event.status,
-                    errorMessage: event.status === TTS_STATUS.Error
-                        ? event.message ?? previous.errorMessage
-                        : previous.errorMessage,
-                };
-            });
-
-            void loadStatus();
-        });
-
-        eventListener.on("tts:install-output", (event) => {
-            if (isDisposed) {
-                return;
-            }
-
+        if (installLogs.length > 0 && !installSessionRef.current) {
             beginInstallSession();
             setIsInstallerOpen(true);
-            setInstallLogs((previous) => {
-                const next = [...previous, event.line];
-                if (next.length <= 400) {
-                    return next;
-                }
+        }
 
-                return next.slice(next.length - 400);
-            });
-        });
-
-        eventListener.on("tts:update-available", (event) => {
-            if (isDisposed) {
-                return;
+        for (let i = prevLogLengthRef.current; i < installLogs.length; i++) {
+            const parsed = inferStepFromLogLine(installLogs[i]);
+            if (parsed !== null) {
+                setMaxReachedStep((prev) => Math.max(prev, parsed));
             }
+        }
 
+        prevLogLengthRef.current = installLogs.length;
+    }, [installLogs]);
+
+    useEffect(() => {
+        const updateAvailable = ttsState?.updateAvailable ?? false;
+        if (updateAvailable && !prevUpdateAvailableRef.current && ttsState) {
             showInfo({
-                message: `HonkTTS update available: ${event.latestVersion} (installed: ${event.installedVersion})`,
+                message: `HonkTTS update available: ${ttsState.latestVersion} (installed: ${ttsState.installedVersion})`,
             });
-        });
+        }
 
-        return () => {
-            isDisposed = true;
-            eventListener.disconnect();
-        };
-    }, []);
+        prevUpdateAvailableRef.current = updateAvailable;
+    }, [ttsState?.updateAvailable]);
 
-    const status = ttsState?.status ?? null;
-    const isBusy = status !== null && INSTALL_SESSION_BUSY_STATUSES.has(status);
+    const isBusy = status !== null && TTS_INSTALL_SESSION_BUSY_STATUSES.has(status);
 
     const closeInstaller = () => {
         if (isBusy) {
@@ -262,8 +165,7 @@ export function TtsInstallerContextProvider(props: PropsWithChildren) {
 
         setIsInstallerOpen(false);
         installSessionRef.current = false;
-        setInstallLogs([]);
-        setStatusMessage(null);
+        clearInstallLogs();
     };
 
     const value: TtsInstallerContextValue = {
@@ -274,12 +176,6 @@ export function TtsInstallerContextProvider(props: PropsWithChildren) {
     const statusLabel = status !== null
         ? (TTS_STATUS_LABELS[status] ?? `Status ${status}`)
         : "Unknown";
-    const inferredStep = inferCurrentStep(status, installLogs);
-
-    useEffect(() => {
-        setMaxReachedStep((previous) => Math.max(previous, inferredStep));
-    }, [inferredStep]);
-
     const currentStep = maxReachedStep;
     const isInstallComplete = status === TTS_STATUS.Installed;
     const stepStatusMessage = isInstallComplete

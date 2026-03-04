@@ -12,6 +12,7 @@ import InstallationsPage from "./components/pages/InstallationsPage.tsx";
 import PreferencesPage from "./components/pages/PreferencesPage.tsx";
 import { OnboardingContextProvider } from "./contextProviders/OnboardingContextProvider";
 import { TtsInstallerContextProvider } from "./contextProviders/TtsInstallerContextProvider";
+import { TtsStateContextProvider } from "./contextProviders/TtsStateContextProvider";
 import { IpcContextProvider } from "./contextProviders/IpcContextProvider";
 import IpcPermissionPage from "./components/pages/IpcPermissionPage.tsx";
 import NewsPage from "./components/pages/NewsPage.tsx";
@@ -35,19 +36,21 @@ function App() {
                             <UpdateContextProvider>
                                 <IpcContextProvider>
                                     <ServersContextProvider>
-                                        <TtsInstallerContextProvider>
-                                            <OnboardingContextProvider>
-                                                <Routes>
-                                                    <Route element={<SideBarLayout />}>
-                                                        <Route path="/" element={<ServersPage />} />
-                                                        <Route path="/installations" element={<InstallationsPage />} />
-                                                        <Route path="/news" element={<NewsPage />} />
-                                                        <Route path="/preferences" element={<PreferencesPage />} />
-                                                        <Route path="*" element={<WorkInProgressLayout />} />
-                                                    </Route>
-                                                </Routes>
-                                            </OnboardingContextProvider>
-                                        </TtsInstallerContextProvider>
+                                        <TtsStateContextProvider>
+                                            <TtsInstallerContextProvider>
+                                                <OnboardingContextProvider>
+                                                    <Routes>
+                                                        <Route element={<SideBarLayout />}>
+                                                            <Route path="/" element={<ServersPage />} />
+                                                            <Route path="/installations" element={<InstallationsPage />} />
+                                                            <Route path="/news" element={<NewsPage />} />
+                                                            <Route path="/preferences" element={<PreferencesPage />} />
+                                                            <Route path="*" element={<WorkInProgressLayout />} />
+                                                        </Route>
+                                                    </Routes>
+                                                </OnboardingContextProvider>
+                                            </TtsInstallerContextProvider>
+                                        </TtsStateContextProvider>
                                     </ServersContextProvider>
                                 </IpcContextProvider>
                             </UpdateContextProvider>
