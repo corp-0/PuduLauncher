@@ -164,7 +164,7 @@ public class TtsService : ITtsService, IDisposable
         // immediately once install is confirmed. StartServerAsync acquires its own lock.
         if (shouldAutoStart)
         {
-            _ = Task.Run(() => StartServerAsync(operationCt), ct);
+            _ = Task.Run(() => StartServerAsync(_shutdownCts.Token));
         }
     }
 

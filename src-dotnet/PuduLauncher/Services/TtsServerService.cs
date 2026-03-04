@@ -84,8 +84,8 @@ public class TtsServerService(
             try
             {
                 _serverProcess.Kill(entireProcessTree: true);
-                await _serverProcess.WaitForExitAsync(
-                    new CancellationTokenSource(ShutdownGraceMs).Token);
+                using var graceCts = new CancellationTokenSource(ShutdownGraceMs);
+                await _serverProcess.WaitForExitAsync(graceCts.Token);
             }
             catch (Exception ex)
             {
