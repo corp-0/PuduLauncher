@@ -1,5 +1,6 @@
 import { Box } from "@mui/joy";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ComponentProps } from "react";
 import { TTS_STATUS } from "../../../../constants/ttsStatus";
 import {
     type TtsPreferencesContextValue,
@@ -64,7 +65,7 @@ const meta = {
         updateField: () => undefined,
         contextValue: defaultContextValue,
     },
-} satisfies Meta<typeof TtsPreferencesLayout & { contextValue: TtsPreferencesContextValue }>;
+} satisfies Meta<ComponentProps<typeof TtsPreferencesLayout> & { contextValue: TtsPreferencesContextValue }>;
 
 export default meta;
 
