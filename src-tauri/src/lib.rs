@@ -87,6 +87,7 @@ pub fn run() {
                 ])
                 .timezone_strategy(tauri_plugin_log::TimezoneStrategy::UseLocal)
                 .max_file_size(10_000_000) // 10 MB per file
+                .level(log::LevelFilter::Info)
                 .build(),
         )
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {

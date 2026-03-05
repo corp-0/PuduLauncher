@@ -4,6 +4,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { log } from "../pudu/log";
 import { FeedbackContext } from "./FeedbackContextProvider";
 import UpdateLayout from "../components/layouts/UpdateLayout";
 
@@ -51,19 +52,23 @@ export function UpdateContextProvider(props: PropsWithChildren) {
                 if (disposed) return;
 
                 if (update) {
+                    log.info(`Update available: ${update.version}`);
                     setPendingUpdate(update);
                     setStatus("update-available");
                 } else {
+                    log.info("No update available");
                     setStatus("no-update");
                 }
             } catch (error: unknown) {
                 if (disposed) return;
+                const detail = error instanceof Error ? error.message : String(error);
+                log.error(`Update check failed: ${detail}`);
                 setStatus("no-update");
                 showError({
                     source: "frontend.updater.check",
                     userMessage: "Failed to check for updates.",
                     code: "UPDATE_CHECK_FAILED",
-                    technicalDetails: error instanceof Error ? error.message : String(error),
+                    technicalDetails: detail,
                     isTransient: true,
                 });
             }
@@ -99,12 +104,14 @@ export function UpdateContextProvider(props: PropsWithChildren) {
                 // On other platforms, relaunch manually.
                 await relaunch();
             } catch (error: unknown) {
+                const detail = error instanceof Error ? error.message : String(error);
+                log.error(`Update install failed: ${detail}`);
                 setStatus("error");
                 showError({
                     source: "frontend.updater.install",
                     userMessage: "Update failed. Please try downloading manually from the releases page.",
                     code: "UPDATE_INSTALL_FAILED",
-                    technicalDetails: error instanceof Error ? error.message : String(error),
+                    technicalDetails: detail,
                 });
             }
         })();
