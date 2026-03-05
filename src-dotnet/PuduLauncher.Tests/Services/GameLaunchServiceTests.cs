@@ -60,25 +60,13 @@ public class GameLaunchServiceTests
 
     private sealed class NoOpDiscordPresenceService : IDiscordPresenceService
     {
+        public event Action<string>? JoinSecretReceived;
         public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-
         public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-
-        public void SetLauncherState()
-        {
-        }
-
-        public void SetInServerState(ServerPresenceInfo info)
-        {
-        }
-
-        public void SetInBuildState(BuildPresenceInfo info)
-        {
-        }
-
-        public void StartGameSession(GameSessionPresenceInfo info)
-        {
-        }
+        public void SetLauncherState() { }
+        public void SetInServerState(ServerPresenceInfo info) { }
+        public void SetInBuildState(BuildPresenceInfo info) { }
+        public void StartGameSession(GameSessionPresenceInfo info) { }
     }
 
     private sealed class FakeInstallationService(Installation installation) : IInstallationService

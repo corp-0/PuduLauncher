@@ -42,8 +42,8 @@ function RequestLogRow({ entry }: { entry: RequestLogEntry }) {
                 borderLeftColor: hasError
                     ? "danger.400"
                     : entry.wasMocked
-                      ? "success.400"
-                      : "neutral.400",
+                        ? "success.400"
+                        : "neutral.400",
             }}
             onClick={() => setExpanded(!expanded)}
         >
@@ -256,6 +256,7 @@ function MocksTab({ mocks, addMock, removeMock, clearAllMocks }: MocksTabProps) 
 }
 
 const EVENT_TYPES: string[] = [
+    "discord:join-request",
     "download:progress",
     "download:state-changed",
     "frontend:error",
@@ -270,6 +271,7 @@ const EVENT_TYPES: string[] = [
 ];
 
 const EVENT_TEMPLATES: Record<string, object> = {
+    "discord:join-request": { eventType: "discord:join-request", timestamp: "", serverIp: "123.45.67.89", serverPort: 7777, serverName: "Test Server", forkName: "Unitystation", buildVersion: 1234, gameMode: "Secret", currentMap: "BoxStation", playerCount: 12, playerCountMax: 40, status: 0 },
     "tts:status-changed": { eventType: "tts:status-changed", timestamp: "", status: 0, message: "" },
     "tts:update-available": { eventType: "tts:update-available", timestamp: "", installedVersion: "1.0.0", latestVersion: "1.1.0" },
     "tts:install-output": { eventType: "tts:install-output", timestamp: "", line: "" },
@@ -314,7 +316,7 @@ function PresetRunner({ injectEvent, addMock }: { injectEvent: DevToolsChannelAc
             if (step.delayMs) {
                 await new Promise<void>((resolve) => {
                     const timer = window.setTimeout(resolve, step.delayMs);
-                    // Check cancel periodically isn't needed — just wait the delay
+                    // Check cancel periodically isn't needed, just wait the delay
                     // If cancelled, we'll break on next iteration
                     void timer;
                 });
@@ -491,7 +493,7 @@ function StateTab({ stateSnapshot, requestStateSnapshot, isActive }: StateTabPro
             </Stack>
             {stateSnapshot === null ? (
                 <Typography level="body-sm" color="neutral" sx={{ textAlign: "center", py: 4 }}>
-                    No snapshot yet — click Refresh or switch to this tab.
+                    No snapshot yet, click Refresh or switch to this tab.
                 </Typography>
             ) : (
                 <Stack spacing={1}>

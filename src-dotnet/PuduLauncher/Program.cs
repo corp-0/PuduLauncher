@@ -22,6 +22,7 @@ try
     builder.Services.AddSingleton<DiscordPresenceService>();
     builder.Services.AddSingleton<IDiscordPresenceService>(sp => sp.GetRequiredService<DiscordPresenceService>());
     builder.Services.AddHostedService(sp => sp.GetRequiredService<DiscordPresenceService>());
+    builder.Services.AddSingleton<IDiscordJoinService, DiscordJoinService>();
     builder.Services.AddSingleton<IServerListService, ServerListService>();
     builder.Services.AddSingleton<IInstallationService, InstallationService>();
     builder.Services.AddSingleton<IScannerService, ScannerService>();
@@ -42,6 +43,7 @@ try
     app.MapPuduInfrastructure();
     app.MapPuduEndpoints(); // Generated
     app.Services.GetRequiredService<IInstallationService>();
+    app.Services.GetRequiredService<IDiscordJoinService>().SubscribeToJoinEvents();
     app.Services.GetRequiredService<IIpcService>().Start();
 
     await app.StartAsSidecarAsync();

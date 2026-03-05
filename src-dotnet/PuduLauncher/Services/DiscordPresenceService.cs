@@ -33,6 +33,8 @@ public class DiscordPresenceService(
     private DateTime? _activeGameSessionStartedAtUtc;
     private CancellationTokenSource? _serverTrackingCts;
 
+    public event Action<string>? JoinSecretReceived;
+
     public Task StartAsync(CancellationToken cancellationToken)
     {
         if (!IsEnabled()) return Task.CompletedTask;
@@ -79,12 +81,17 @@ public class DiscordPresenceService(
         string resolvedDetails = BuildInServerDetails(info.ServerName, info.ServerIp, info.ServerPort);
         string resolvedLargeImageText = BuildLargeImageText(info.GameMode, info.CurrentMap);
 
+        Party? party = BuildParty(info.ServerIp, info.ServerPort, info.PlayerCount, info.PlayerCountMax);
+        string? joinSecret = IDiscordJoinService.BuildJoinSecret(info.ServerIp, info.ServerPort, info.ForkName, info.BuildVersion);
+
         SetPresenceSafe(
             details: resolvedDetails,
             state: resolvedState,
             largeImageText: resolvedLargeImageText,
             randomizeLargeImage: true,
-            includeTimestamp: true);
+            includeTimestamp: true,
+            party: party,
+            joinSecret: joinSecret);
     }
 
     public void SetInBuildState(BuildPresenceInfo info)
@@ -165,6 +172,10 @@ public class DiscordPresenceService(
                 return;
             }
 
+            client.RegisterUriScheme();
+            client.Subscribe(DiscordRPC.EventType.Join);
+            client.OnJoin += OnDiscordJoin;
+
             lock (_lock)
             {
                 _client = client;
@@ -202,6 +213,8 @@ public class DiscordPresenceService(
 
         if (client == null) return;
 
+        client.OnJoin -= OnDiscordJoin;
+
         try
         {
             if (client.IsInitialized)
@@ -221,7 +234,14 @@ public class DiscordPresenceService(
         logger.LogInformation("Discord rich presence disconnected");
     }
 
-    private void SetPresenceSafe(string details, string state, string? largeImageText, bool randomizeLargeImage, bool includeTimestamp)
+    private void SetPresenceSafe(
+        string details,
+        string state,
+        string? largeImageText,
+        bool randomizeLargeImage,
+        bool includeTimestamp,
+        Party? party = null,
+        string? joinSecret = null)
     {
         DiscordRpcClient? client;
         lock (_lock)
@@ -248,6 +268,16 @@ public class DiscordPresenceService(
                     LargeImageKey = randomizeLargeImage ? GetRandomAssetKey() : null,
                     LargeImageText = largeImageText
                 };
+            }
+
+            if (party != null)
+            {
+                presence.Party = party;
+            }
+
+            if (joinSecret != null)
+            {
+                presence.Secrets = new Secrets { Join = joinSecret };
             }
 
             client.SetPresence(presence);
@@ -368,7 +398,10 @@ public class DiscordPresenceService(
             server.GameMode,
             server.CurrentMap,
             server.ServerIp,
-            resolvedServerPort));
+            resolvedServerPort,
+            server.PlayerCount,
+            server.PlayerCountMax,
+            server.BuildVersion));
     }
 
     private int ResolveServerTrackingIntervalMs()
@@ -422,6 +455,24 @@ public class DiscordPresenceService(
 
             return _activeGameSessionStartedAtUtc.Value;
         }
+    }
+
+    private void OnDiscordJoin(object sender, DiscordRPC.Message.JoinMessage args)
+    {
+        JoinSecretReceived?.Invoke(args.Secret);
+    }
+
+    private static Party? BuildParty(string? serverIp, int? serverPort, int? playerCount, int? playerCountMax)
+    {
+        if (string.IsNullOrWhiteSpace(serverIp)) return null;
+
+        return new Party
+        {
+            ID = $"{serverIp.Trim()}:{serverPort ?? 0}",
+            Privacy = Party.PrivacySetting.Public,
+            Size = Math.Max(playerCount ?? 0, 1),
+            Max = Math.Max(playerCountMax ?? 0, 1)
+        };
     }
 
     private static string BuildInServerState(string? forkName)

@@ -47,7 +47,7 @@ export async function puduFetch(
     });
   }
 
-  // Real fetch — log in background to avoid delaying the response
+  // Real fetch, log in background to avoid delaying the response
   const start = performance.now();
   try {
     const response = await fetch(url, init);
