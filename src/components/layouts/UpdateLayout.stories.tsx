@@ -37,11 +37,11 @@ type Story = StoryObj<typeof meta>;
 // --- Windows stories ---
 
 export const WindowsUpdateAvailable: Story = {
-    name: "Windows — Update Available",
+    name: "Windows Update Available",
 };
 
 export const WindowsDownloading: Story = {
-    name: "Windows — Downloading",
+    name: "Windows Downloading",
     args: {
         status: "downloading",
         downloadProgress: 27_262_976,
@@ -50,14 +50,14 @@ export const WindowsDownloading: Story = {
 };
 
 export const WindowsInstalling: Story = {
-    name: "Windows — Installing",
+    name: "Windows Installing",
     args: {
         status: "installing",
     },
 };
 
 export const WindowsError: Story = {
-    name: "Windows — Error",
+    name: "Windows Error",
     args: {
         status: "error",
     },
@@ -66,14 +66,14 @@ export const WindowsError: Story = {
 // --- Linux stories ---
 
 export const LinuxUpdateAvailable: Story = {
-    name: "Linux — Update Available",
+    name: "Linux Update Available",
     args: {
         canAutoUpdate: false,
     },
 };
 
 export const LinuxError: Story = {
-    name: "Linux — Error",
+    name: "Linux Error",
     args: {
         canAutoUpdate: false,
         status: "error",

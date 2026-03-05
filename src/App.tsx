@@ -17,6 +17,7 @@ import { IpcContextProvider } from "./contextProviders/IpcContextProvider";
 import IpcPermissionPage from "./components/pages/IpcPermissionPage.tsx";
 import NewsPage from "./components/pages/NewsPage.tsx";
 import { UpdateContextProvider } from "./contextProviders/UpdateContextProvider";
+import { DiscordJoinContextProvider } from "./contextProviders/DiscordJoinContextProvider";
 
 function App() {
     const { themeId } = useThemeContext();
@@ -35,6 +36,7 @@ function App() {
                         <FeedbackContextProvider>
                             <UpdateContextProvider>
                                 <IpcContextProvider>
+                                <DiscordJoinContextProvider>
                                     <ServersContextProvider>
                                         <TtsStateContextProvider>
                                             <TtsInstallerContextProvider>
@@ -52,6 +54,7 @@ function App() {
                                             </TtsInstallerContextProvider>
                                         </TtsStateContextProvider>
                                     </ServersContextProvider>
+                                </DiscordJoinContextProvider>
                                 </IpcContextProvider>
                             </UpdateContextProvider>
                         </FeedbackContextProvider>

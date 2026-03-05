@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 
 const root = ReactDOM.createRoot(document.getElementById("root") as HTMLElement);
 
-// Dev tools window gets its own minimal render tree — no ThemeProvider, no App.
+// Dev tools window gets its own minimal render tree, no ThemeProvider, no App.
 // This avoids touching App.tsx which would break React Compiler's JSX memoization.
 if (import.meta.env.DEV && window.location.pathname === "/devtools") {
   import("./devtools/DevToolsPage").then(({ default: DevToolsPage }) => {
@@ -14,7 +14,7 @@ if (import.meta.env.DEV && window.location.pathname === "/devtools") {
     );
   });
 } else {
-  // Normal app — static imports keep App.tsx identical to its original form
+  // Normal app, static imports keep App.tsx identical to its original form
   const { ThemeProvider } = await import("./contextProviders/ThemeProvider");
   const { default: App } = await import("./App");
 

@@ -7,7 +7,7 @@ class DevToolsBridgeImpl {
   private channel: BroadcastChannel;
   private mocks = new Map<string, unknown>();
   private stateSources = new Map<string, StateSource>();
-  private eventInjector: ((eventType: string, data: unknown) => void) | null = null;
+  private eventInjectors = new Set<(eventType: string, data: unknown) => void>();
 
   constructor() {
     this.channel = new BroadcastChannel(DEVTOOLS_CHANNEL);
@@ -28,8 +28,8 @@ class DevToolsBridgeImpl {
         this.mocks.clear();
         break;
       case "inject-event":
-        if (this.eventInjector) {
-          this.eventInjector(command.eventType, command.data);
+        for (const injector of this.eventInjectors) {
+          injector(command.eventType, command.data);
         }
         this.report({
           type: "event-injected",
@@ -73,11 +73,9 @@ class DevToolsBridgeImpl {
   }
 
   registerEventInjector(fn: (eventType: string, data: unknown) => void): () => void {
-    this.eventInjector = fn;
+    this.eventInjectors.add(fn);
     return () => {
-      if (this.eventInjector === fn) {
-        this.eventInjector = null;
-      }
+      this.eventInjectors.delete(fn);
     };
   }
 

@@ -87,7 +87,7 @@ export default function UpdateLayout(props: UpdateLayoutProps) {
                         />
                         <Typography level="body-xs" color="neutral" textAlign="center">
                             {downloadTotal > 0
-                                ? `${Math.round(progressPercent)}% — ${formatBytes(downloadProgress)} / ${formatBytes(downloadTotal)}`
+                                ? `${Math.round(progressPercent)}% - ${formatBytes(downloadProgress)} / ${formatBytes(downloadTotal)}`
                                 : "Downloading..."}
                         </Typography>
                     </Stack>

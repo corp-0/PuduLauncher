@@ -2,6 +2,7 @@ namespace PuduLauncher.Services.Interfaces;
 
 public interface IDiscordPresenceService : IHostedService
 {
+    event Action<string>? JoinSecretReceived;
     void SetLauncherState();
     void SetInServerState(ServerPresenceInfo info);
     void SetInBuildState(BuildPresenceInfo info);
@@ -14,7 +15,10 @@ public record ServerPresenceInfo(
     string? GameMode = null,
     string? CurrentMap = null,
     string? ServerIp = null,
-    int? ServerPort = null);
+    int? ServerPort = null,
+    int? PlayerCount = null,
+    int? PlayerCountMax = null,
+    int? BuildVersion = null);
 
 public record BuildPresenceInfo(
     string? ForkName = null,
