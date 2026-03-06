@@ -25,14 +25,14 @@ export default function ChangeEntry(props: Change) {
     };
 
     return (
-        <Card variant="soft" invertedColors>
+        <Card variant="soft">
             <Stack direction="row" spacing={2} alignItems="center">
                 <Tooltip title={type} placement="top">
                     {getIconByType()}
                 </Tooltip>
                 <Stack>
-                    <Typography level="body-md" sx={{ color: "white" }}>{description}</Typography>
-                    <Typography level="body-xs" sx={{ color: "text.secondary" }}>By {author}</Typography>
+                    <Typography level="body-md" sx={{ color: "primary.plainColor" }}>{description}</Typography>
+                    <Typography level="body-xs" sx={{ color: "text.primary" }}>By {author}</Typography>
                 </Stack>
             </Stack>
         </Card >
