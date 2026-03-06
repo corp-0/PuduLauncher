@@ -16,7 +16,8 @@ const THEME_ID_TO_PREFERENCE: Record<ThemeId, string> = {
     pudu: "Pudu",
     unitystationClassic: "Unitystation Classic",
     australNight: "Austral Forest Night",
-    doors95: "Doors95"
+    doors95: "Doors95",
+    vapor: "Vapor",
 };
 
 const normalizeThemeToken = (value: string): string => (

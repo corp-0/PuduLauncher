@@ -11,11 +11,12 @@ public class LauncherPreferences
             "Pudu",
             "Unitystation Classic",
             "Austral Forest Night",
+            "Vapor",
             "Doors95",
-            "Hotdog Stand"
+            "Hotdog Stand",
         ])]
     public string Theme { get; set; } = "Pudu";
-    
+
     [PreferenceField("Enable Discord rich presence", "toggle",
         Tooltip = "If enabled, Discord will get rich presence data from Pudu")]
     public bool EnableDiscordRichPresence { get; set; }
