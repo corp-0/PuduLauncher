@@ -2,6 +2,7 @@ import australNightTheme, { australNightScrollbarStyles } from "./australNight";
 import doors95Theme, { doors95ScrollbarStyles } from "./doors95";
 import hotdogStandTheme, { hotdogStandScrollbarStyles } from "./hotdogStand"
 import puduTheme, { puduScrollbarStyles } from "./pudu"
+import vaporTheme, { vaporScrollbarStyles } from "./vapor"
 import unitystationClassicTheme, { unitystationClassicScrollbarStyles } from "./unitystationClassic"
 import { CSSProperties } from "react";
 
@@ -11,6 +12,7 @@ export const themeRegistry = {
     doors95: doors95Theme,
     unitystationClassic: unitystationClassicTheme,
     pudu: puduTheme,
+    vapor: vaporTheme,
 } as const;
 
 export type ThemeId = keyof typeof themeRegistry;
@@ -21,4 +23,5 @@ export const themeScrollbarRegistry: Record<ThemeId, Record<string, CSSPropertie
     doors95: doors95ScrollbarStyles,
     unitystationClassic: unitystationClassicScrollbarStyles,
     pudu: puduScrollbarStyles,
+    vapor: vaporScrollbarStyles,
 };
