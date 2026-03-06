@@ -1,17 +1,14 @@
-import { createContext, type PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, type PropsWithChildren, useContext, useEffect, useState } from "react";
 import { BlogApi, ChangelogApi, type BlogPost, type ChangelogEntry } from "../pudu/generated";
 import { useFeedbackContext } from "./FeedbackContextProvider";
 
 const ROTATION_INTERVAL_MS = 8_000;
 const POSTS_TO_FETCH = 12;
 const CHANGELOG_TO_FETCH = 10;
-const VISIBLE_POSTS = 4;
 const PLACEHOLDER_IMAGE_URL = "/aiPlaceholders/pudu-nap.png";
 
 interface NewsContextValue {
-    posts: BlogPost[];
-    featuredPost: BlogPost | null;
-    secondaryPosts: BlogPost[];
+    allPosts: BlogPost[];
     activeIndex: number;
     totalPosts: number;
     isLoading: boolean;
@@ -21,6 +18,7 @@ interface NewsContextValue {
     isChangelogEmpty: boolean;
     goToNext: () => void;
     goToPrevious: () => void;
+    setPaused: (paused: boolean) => void;
 }
 
 const NewsContext = createContext<NewsContextValue | undefined>(undefined);
@@ -38,17 +36,6 @@ function normalizePost(post: BlogPost, index: number): BlogPost {
     };
 }
 
-function buildVisiblePosts(posts: BlogPost[], startIndex: number): BlogPost[] {
-    if (posts.length === 0) {
-        return [];
-    }
-
-    return Array.from({ length: VISIBLE_POSTS }, (_, offset) => {
-        const index = (startIndex + offset) % posts.length;
-        return posts[index];
-    });
-}
-
 export function NewsContextProvider(props: PropsWithChildren) {
     const { children } = props;
     const { showError } = useFeedbackContext();
@@ -58,8 +45,9 @@ export function NewsContextProvider(props: PropsWithChildren) {
     const [activeIndex, setActiveIndex] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [isChangelogLoading, setIsChangelogLoading] = useState(true);
+    const [isPaused, setIsPaused] = useState(false);
 
-    const goToNext = useCallback(() => {
+    const goToNext = () => {
         setActiveIndex((previous) => {
             if (posts.length === 0) {
                 return 0;
@@ -67,9 +55,9 @@ export function NewsContextProvider(props: PropsWithChildren) {
 
             return (previous + 1) % posts.length;
         });
-    }, [posts.length]);
+    };
 
-    const goToPrevious = useCallback(() => {
+    const goToPrevious = () => {
         setActiveIndex((previous) => {
             if (posts.length === 0) {
                 return 0;
@@ -77,7 +65,7 @@ export function NewsContextProvider(props: PropsWithChildren) {
 
             return (previous - 1 + posts.length) % posts.length;
         });
-    }, [posts.length]);
+    };
 
     useEffect(() => {
         const loadBlogPosts = async () => {
@@ -151,7 +139,7 @@ export function NewsContextProvider(props: PropsWithChildren) {
     }, [showError]);
 
     useEffect(() => {
-        if (posts.length < 2) {
+        if (posts.length < 2 || isPaused) {
             return;
         }
 
@@ -160,7 +148,7 @@ export function NewsContextProvider(props: PropsWithChildren) {
         }, ROTATION_INTERVAL_MS);
 
         return () => window.clearInterval(intervalId);
-    }, [posts.length]);
+    }, [posts.length, isPaused]);
 
     useEffect(() => {
         if (activeIndex >= posts.length) {
@@ -168,15 +156,8 @@ export function NewsContextProvider(props: PropsWithChildren) {
         }
     }, [activeIndex, posts.length]);
 
-    const visiblePosts = useMemo(() => buildVisiblePosts(posts, activeIndex), [posts, activeIndex]);
-
-    const featuredPost = visiblePosts[0] ?? null;
-    const secondaryPosts = visiblePosts.slice(1);
-
     const value: NewsContextValue = {
-        posts,
-        featuredPost,
-        secondaryPosts,
+        allPosts: posts,
         activeIndex,
         totalPosts: posts.length,
         isLoading,
@@ -186,6 +167,7 @@ export function NewsContextProvider(props: PropsWithChildren) {
         isChangelogEmpty: !isChangelogLoading && changelogEntries.length === 0,
         goToNext,
         goToPrevious,
+        setPaused: setIsPaused,
     };
 
     return (
