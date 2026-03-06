@@ -2,6 +2,7 @@ import australNightTheme, { australNightScrollbarStyles } from "./australNight";
 import doors95Theme, { doors95ScrollbarStyles } from "./doors95";
 import hotdogStandTheme, { hotdogStandScrollbarStyles } from "./hotdogStand"
 import puduTheme, { puduScrollbarStyles } from "./pudu"
+import riseAndShineTheme, { riseAndShineScrollbarStyles } from "./riseAndShine"
 import vaporTheme, { vaporScrollbarStyles } from "./vapor"
 import unitystationClassicTheme, { unitystationClassicScrollbarStyles } from "./unitystationClassic"
 import { CSSProperties } from "react";
@@ -12,6 +13,7 @@ export const themeRegistry = {
     doors95: doors95Theme,
     unitystationClassic: unitystationClassicTheme,
     pudu: puduTheme,
+    riseAndShine: riseAndShineTheme,
     vapor: vaporTheme,
 } as const;
 
@@ -23,5 +25,6 @@ export const themeScrollbarRegistry: Record<ThemeId, Record<string, CSSPropertie
     doors95: doors95ScrollbarStyles,
     unitystationClassic: unitystationClassicScrollbarStyles,
     pudu: puduScrollbarStyles,
+    riseAndShine: riseAndShineScrollbarStyles,
     vapor: vaporScrollbarStyles,
 };

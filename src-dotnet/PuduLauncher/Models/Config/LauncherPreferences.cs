@@ -12,6 +12,7 @@ public class LauncherPreferences
             "Unitystation Classic",
             "Austral Forest Night",
             "Vapor",
+            "Rise and Shine",
             "Doors95",
             "Hotdog Stand",
         ])]
