@@ -1,15 +1,16 @@
+import { Box, Card, CardContent, CardOverflow, Link, Stack, Typography } from "@mui/joy";
 import { BlogPost } from "../../../pudu/generated";
-import { AspectRatio, Card, CardContent, CardOverflow, Link, Stack, Typography } from "@mui/joy";
 import { buildBlogPostUrl, formatBlogPostByline } from "../../../domain/news/blogPostPresentation";
 import { openExternalUrl } from "../../../utils/navigation/openExternalUrl";
 
-export default function SmallBlogPostPreview(props: BlogPost) {
+export default function FeaturedBlogPostPreview(props: BlogPost) {
     const { author, imageUrl, slug, createDateTime, summary, title } = props;
     const blogPostUrl = buildBlogPostUrl({ slug });
     const byline = formatBlogPostByline({ createDateTime, author });
 
     return (
         <Card
+            orientation="horizontal"
             variant="outlined"
             sx={{
                 height: "100%",
@@ -20,20 +21,23 @@ export default function SmallBlogPostPreview(props: BlogPost) {
                 },
             }}
         >
-            <CardOverflow>
-                <AspectRatio ratio="16/9">
-                    <img
-                        src={imageUrl!}
-                        loading="lazy"
-                        alt={title}
-                    />
-                </AspectRatio>
+            <CardOverflow sx={{ flex: "0 0 45%" }}>
+                <Box
+                    component="img"
+                    src={imageUrl!}
+                    loading="lazy"
+                    alt={title}
+                    sx={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        minHeight: 200,
+                    }}
+                />
             </CardOverflow>
             <CardContent>
-                <Stack spacing={1}>
-                    <Typography level="title-md">
-                        {title}
-                    </Typography>
+                <Stack spacing={1} justifyContent="center" sx={{ height: "100%" }}>
+                    <Typography level="title-lg">{title}</Typography>
                     <Typography level="body-xs" sx={{ color: "text.tertiary" }}>
                         {byline}
                     </Typography>
@@ -43,7 +47,7 @@ export default function SmallBlogPostPreview(props: BlogPost) {
                             overflow: "hidden",
                             textOverflow: "ellipsis",
                             display: "-webkit-box",
-                            WebkitLineClamp: 3,
+                            WebkitLineClamp: 4,
                             WebkitBoxOrient: "vertical",
                         }}
                     >

@@ -1,7 +1,7 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
 import type { MouseEvent } from "react";
 
-export async function openExternalUrl(event: MouseEvent<HTMLAnchorElement>, url: string) {
+export async function openExternalUrl(event: MouseEvent<HTMLElement>, url: string) {
     event.preventDefault();
 
     try {
