@@ -35,13 +35,14 @@ export default function ServersLayout() {
                         </Typography>
                     </Alert>
                 )}
-
-                {cards.map((card) => (
-                    <ServerCard
-                        key={card.id}
-                        {...card}
-                    />
-                ))}
+                <Stack spacing={2}>
+                    {cards.map((card) => (
+                        <ServerCard
+                            key={card.id}
+                            {...card}
+                        />
+                    ))}
+                </Stack>
             </Stack>
         </Box>
     );
