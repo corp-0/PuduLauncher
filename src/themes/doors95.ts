@@ -668,10 +668,17 @@ const doors95 = extendTheme({
         JoySnackbar: {
             styleOverrides: {
                 root: {
-                    backgroundColor: WIN95_GRAY,
-                    color: WIN95_BLACK,
+                    backgroundColor: `${WIN95_GRAY} !important`,
+                    color: `${WIN95_BLACK} !important`,
                     boxShadow: bevelUp,
                     border: "none",
+                    "& .MuiTypography-root": {
+                        color: `${WIN95_BLACK} !important`,
+                    },
+                    "& .MuiButton-root": {
+                        color: WIN95_BLACK,
+                        borderColor: WIN95_DKGRAY,
+                    },
                 },
             },
         },
