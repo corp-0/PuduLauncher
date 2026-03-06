@@ -4,6 +4,7 @@ import { useFeedbackContext } from "../../../../../contextProviders/FeedbackCont
 import type { OnboardingStepComponentProps } from "../../../../../contextProviders/onboardingStepRegistry";
 import { useStepContext } from "../../../../../contextProviders/StepContextProvider";
 import { PreferencesApi, TtsApi, type Preferences } from "../../../../../pudu/generated";
+import { OnboardingAnimatedContent } from "../../OnboardingStepShell";
 import HonkTtsSetupLayout from "./HonkTtsSetupLayout";
 import ImmersiveVoicesIntroLayout from "./ImmersiveVoicesIntroLayout";
 import InstallationsPathLayout from "./InstallationsPathLayout";
@@ -211,48 +212,47 @@ export default function MainLayout(props: OnboardingStepComponentProps) {
         );
     }
 
-    switch (currentStep) {
-        case 0:
-            return (
-                <InstallationsPathLayout
-                    installationsPath={installationsPath}
-                    isSubmitting={isSavingPreferences || isInstallingTts}
-                    onInstallationsPathChange={setInstallationsPath}
-                    onContinue={persistInstallationsAndContinue}
-                />
-            );
-        case 1:
-            return (
-                <ImmersiveVoicesIntroLayout
-                    isSubmitting={isSavingPreferences || isInstallingTts}
-                    onEnable={goToNextStep}
-                    onSkip={async () => {
-                        await persistTtsPreferencesAndComplete(false);
-                    }}
-                />
-            );
-        case 2:
-            return (
-                <HonkTtsSetupLayout
-                    installPath={ttsInstallPath}
-                    autoStartOnLaunch={autoStartOnLaunch}
-                    isSubmitting={isSavingPreferences || isInstallingTts}
-                    onInstallPathChange={setTtsInstallPath}
-                    onAutoStartOnLaunchChange={setAutoStartOnLaunch}
-                    onBack={goToPreviousStep}
-                    onContinue={async () => {
-                        await persistTtsPreferencesAndInstall();
-                    }}
-                />
-            );
-        default:
-            return (
-                <InstallationsPathLayout
-                    installationsPath={installationsPath}
-                    isSubmitting={isSavingPreferences || isInstallingTts}
-                    onInstallationsPathChange={setInstallationsPath}
-                    onContinue={persistInstallationsAndContinue}
-                />
-            );
-    }
+    const renderStep = () => {
+        switch (currentStep) {
+            case 1:
+                return (
+                    <ImmersiveVoicesIntroLayout
+                        isSubmitting={isSavingPreferences || isInstallingTts}
+                        onEnable={goToNextStep}
+                        onSkip={async () => {
+                            await persistTtsPreferencesAndComplete(false);
+                        }}
+                    />
+                );
+            case 2:
+                return (
+                    <HonkTtsSetupLayout
+                        installPath={ttsInstallPath}
+                        autoStartOnLaunch={autoStartOnLaunch}
+                        isSubmitting={isSavingPreferences || isInstallingTts}
+                        onInstallPathChange={setTtsInstallPath}
+                        onAutoStartOnLaunchChange={setAutoStartOnLaunch}
+                        onBack={goToPreviousStep}
+                        onContinue={async () => {
+                            await persistTtsPreferencesAndInstall();
+                        }}
+                    />
+                );
+            default:
+                return (
+                    <InstallationsPathLayout
+                        installationsPath={installationsPath}
+                        isSubmitting={isSavingPreferences || isInstallingTts}
+                        onInstallationsPathChange={setInstallationsPath}
+                        onContinue={persistInstallationsAndContinue}
+                    />
+                );
+        }
+    };
+
+    return (
+        <OnboardingAnimatedContent stepKey={`launcher-basics-${currentStep}`}>
+            {renderStep()}
+        </OnboardingAnimatedContent>
+    );
 }

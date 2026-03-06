@@ -3,7 +3,8 @@ import {Alert, Box, Modal, ModalDialog, Stack, Typography} from "@mui/joy";
 import {OnboardingApi, type OnboardingStep} from "../pudu/generated";
 import {FeedbackContext} from "./FeedbackContextProvider";
 import {onboardingStepRegistry} from "./onboardingStepRegistry";
-import PuduStepper from "../components/organisms/common/PuduStepper";
+import OnboardingProgressDots from "../components/layouts/onboarding/OnboardingProgressDots";
+import {OnboardingAnimatedContent, OnboardingBackground} from "../components/layouts/onboarding/OnboardingStepShell";
 
 interface OnboardingContextValue {
     pendingSteps: OnboardingStep[];
@@ -191,32 +192,10 @@ export function OnboardingContextProvider(props: OnboardingContextProviderProps)
         </Stack>
     );
 
-    const maxStepOrder = allSteps.reduce(
-        (currentMax, step) => Math.max(currentMax, step.order),
-        -1,
-    );
-    const maxSteps = Math.max(maxStepOrder + 1, allSteps.length, 1);
-
-    const stepLabels = Array.from(
-        {length: maxSteps},
-        (_, stepNumber) => `Step ${stepNumber + 1}`,
-    );
-
-    for (const step of allSteps) {
-        if (step.order >= 0 && step.order < maxSteps) {
-            stepLabels[step.order] = step.title;
-        }
-    }
-
-    const activeStepIndex =
-        activeStep
-            ? allSteps.findIndex((s) => s.id === activeStep.id)
-            : -1;
-    const currentStep = activeStepIndex >= 0
-        ? activeStepIndex + 1
-        : activeStep
-            ? Math.min(Math.max(activeStep.order + 1, 1), maxSteps)
-            : maxSteps;
+    const totalSteps = Math.max(allSteps.length, 1);
+    const activeStepIndex = activeStep
+        ? allSteps.findIndex((s) => s.id === activeStep.id)
+        : 0;
 
     return (
         <OnboardingContext.Provider value={value}>
@@ -227,17 +206,18 @@ export function OnboardingContextProvider(props: OnboardingContextProviderProps)
             {!isLoading && children}
 
             <Modal open={!isLoading && activeStep !== null} sx={{zIndex: 1300}}>
-                <ModalDialog layout="fullscreen">
-                    <Stack spacing={2} justifyContent="flex-start" alignItems="center"
-                           sx={{width: "100%", height: "100%"}}>
-                        {maxSteps > 1 && (
-                            <PuduStepper
-                                maxSteps={maxSteps}
-                                currentStep={currentStep}
-                                stepLabels={stepLabels}
-                            />
-                        )}
-                        <Stack sx={{width: "100%", height: "100%"}}>
+                <ModalDialog
+                    layout="fullscreen"
+                    sx={{
+                        p: 0,
+                        backgroundColor: "transparent",
+                        boxShadow: "none",
+                        overflow: "hidden",
+                    }}
+                >
+                    <OnboardingBackground />
+                    <Stack sx={{width: "100%", height: "100%", position: "relative", zIndex: 1}}>
+                        <OnboardingAnimatedContent stepKey={activeStep?.id ?? ""}>
                             {ActiveStepComponent ? (
                                 <ActiveStepComponent
                                     step={activeStep!}
@@ -245,7 +225,15 @@ export function OnboardingContextProvider(props: OnboardingContextProviderProps)
                                     onDismiss={dismissCurrentStep}
                                 />
                             ) : missingComponentReferenceWarning()}
-                        </Stack>
+                        </OnboardingAnimatedContent>
+                        {totalSteps > 1 && (
+                            <Box sx={{py: 2, position: "relative", zIndex: 2}}>
+                                <OnboardingProgressDots
+                                    totalSteps={totalSteps}
+                                    currentStep={activeStepIndex >= 0 ? activeStepIndex : 0}
+                                />
+                            </Box>
+                        )}
                     </Stack>
                 </ModalDialog>
             </Modal>
