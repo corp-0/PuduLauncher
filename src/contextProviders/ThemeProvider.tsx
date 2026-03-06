@@ -17,6 +17,7 @@ const THEME_ID_TO_PREFERENCE: Record<ThemeId, string> = {
     unitystationClassic: "Unitystation Classic",
     australNight: "Austral Forest Night",
     doors95: "Doors95",
+    riseAndShine: "Rise and Shine",
     vapor: "Vapor",
 };
 
