@@ -18,10 +18,14 @@ impl SidecarManager {
     /// The sidecar prints `SIDECAR_PORT:<port>` to stdout repeatedly until we
     /// acknowledge via stdin, forming a reliable handshake.
     pub async fn start(&self, app: &AppHandle) -> Result<u16, String> {
+        let host_exe = std::env::current_exe()
+            .map_err(|e| format!("Failed to resolve host executable path: {}", e))?;
+
         let sidecar_command = app
             .shell()
             .sidecar("pudu-launcher-sidecar")
-            .map_err(|e| format!("Failed to create sidecar command: {}", e))?;
+            .map_err(|e| format!("Failed to create sidecar command: {}", e))?
+            .args(["--host-exe", &host_exe.to_string_lossy()]);
 
         let (rx, child) = sidecar_command
             .spawn()
