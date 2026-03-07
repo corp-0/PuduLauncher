@@ -8,6 +8,7 @@ namespace PuduLauncher.Services;
 public class DiscordPresenceService(
     IServerListService serverListService,
     IPreferencesService preferencesService,
+    IConfiguration configuration,
     ILogger<DiscordPresenceService> logger) : IDiscordPresenceService
 {
     private const int DefaultServerTrackingIntervalMs = 10_000;
@@ -172,7 +173,11 @@ public class DiscordPresenceService(
                 return;
             }
 
-            client.RegisterUriScheme();
+            string? hostExe = configuration["host-exe"];
+            bool registered = client.RegisterUriScheme(executable: hostExe);
+            logger.LogInformation(
+                "Discord URI scheme registered={Registered}, hostExe={HostExe}",
+                registered, hostExe ?? "(null, using sidecar fallback)");
             client.Subscribe(DiscordRPC.EventType.Join);
             client.OnJoin += OnDiscordJoin;
 
@@ -181,12 +186,7 @@ public class DiscordPresenceService(
                 _client = client;
             }
 
-            SetPresenceSafe(
-                details: GetRandomLauncherDetails(),
-                state: "In launcher",
-                largeImageText: null,
-                randomizeLargeImage: false,
-                includeTimestamp: false);
+            SetLauncherState();
 
             logger.LogInformation("Discord rich presence initialized");
         }
