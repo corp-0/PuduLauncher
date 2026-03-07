@@ -11,6 +11,16 @@ import { devBridge } from "../devtools/bridge";
 import { useFeedbackContext } from "./FeedbackContextProvider";
 import DiscordJoinDialog from "../components/molecules/discord/DiscordJoinDialog";
 
+const isTauri = "__TAURI_INTERNALS__" in window;
+
+async function focusWindow() {
+    if (!isTauri) return;
+    const { getCurrentWindow } = await import("@tauri-apps/api/window");
+    const win = getCurrentWindow();
+    await win.unminimize();
+    await win.setFocus();
+}
+
 const DiscordJoinStatus = {
     InstallRequired: 0,
     ServerNotFound: 1,
@@ -38,6 +48,8 @@ export function DiscordJoinContextProvider(props: PropsWithChildren) {
         }
 
         listener.on("discord:join-request", (event: DiscordJoinRequestEvent) => {
+            void focusWindow();
+
             if (event.status === DiscordJoinStatus.ServerNotFound) {
                 showWarningRef.current({
                     message: "Discord join failed",
