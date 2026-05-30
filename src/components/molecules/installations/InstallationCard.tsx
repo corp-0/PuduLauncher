@@ -41,6 +41,7 @@ export default function InstallationCard(props: InstallationCardProps) {
                 boxShadow: "sm",
                 overflow: "hidden",
                 padding: 2,
+                minHeight: 80,
             }}>
             <Stack
                 direction={{ xs: "column", sm: "row" }}
