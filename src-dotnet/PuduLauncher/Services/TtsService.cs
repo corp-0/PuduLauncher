@@ -80,19 +80,61 @@ public class TtsService : ITtsService, IDisposable
     {
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _shutdownCts.Token);
         CancellationToken operationCt = linkedCts.Token;
-        await SetStatusAsync(TtsStatus.CheckingForUpdates);
+
+        if (!await _operationLock.WaitAsync(0, operationCt))
+        {
+            _logger.LogWarning("TTS operation already in progress; skipping update check");
+            return;
+        }
+
+        // Capture the resting status up front so a passive update check (for example
+        // opening the Preferences tab) never clobbers a running-server state. While
+        // the server is running we leave _status untouched entirely; otherwise we
+        // show progress and restore the captured status when the check finishes.
+        TtsStatus restingStatus = DetermineRestingStatus();
+        bool reportProgress = restingStatus != TtsStatus.ServerRunning;
 
         try
         {
+            if (reportProgress)
+            {
+                await SetStatusAsync(TtsStatus.CheckingForUpdates);
+            }
+
             await _updateChecker.CheckForUpdatesAsync(_manifest?.InstallerVersion, operationCt);
-            await SetStatusAsync(_manifest != null ? TtsStatus.Installed : TtsStatus.NotInstalled);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to check for TTS updates");
-            await SetStatusAsync(_manifest != null ? TtsStatus.Installed : TtsStatus.NotInstalled);
             throw;
         }
+        finally
+        {
+            if (reportProgress)
+            {
+                await SetStatusAsync(restingStatus);
+            }
+
+            _operationLock.Release();
+        }
+    }
+
+    // Determines the status the service should rest at when no operation is in
+    // flight. Derives the running state from the server process so an update check
+    // can never report "Installed" while the server is actually alive.
+    private TtsStatus DetermineRestingStatus()
+    {
+        if (_manifest is null)
+        {
+            return TtsStatus.NotInstalled;
+        }
+
+        if (_serverService.IsRunning)
+        {
+            return TtsStatus.ServerRunning;
+        }
+
+        return _status == TtsStatus.ServerStopped ? TtsStatus.ServerStopped : TtsStatus.Installed;
     }
 
     public async Task InstallAsync(CancellationToken ct = default)
