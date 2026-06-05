@@ -120,8 +120,16 @@ export function TtsInstallerContextProvider(props: PropsWithChildren) {
             setIsInstallerOpen(true);
         }
 
+        if (status === TTS_STATUS.ServerStarting && prevStatusRef.current !== TTS_STATUS.ServerStarting) {
+            showInfo({ message: "TTS server is starting..." });
+        }
+
         if (status === TTS_STATUS.ServerRunning && prevStatusRef.current !== TTS_STATUS.ServerRunning) {
             showSuccess({ message: "TTS server is running" });
+        }
+
+        if (status === TTS_STATUS.ServerStopped && prevStatusRef.current !== TTS_STATUS.ServerStopped) {
+            showInfo({ message: "TTS server stopped" });
         }
 
         setMaxReachedStep((prev) => Math.max(prev, stepFromStatus(status)));
