@@ -36,6 +36,9 @@ try
     builder.Services.AddSingleton<ITtsService, TtsService>();
     builder.Services.AddSingleton<IOnboardingService, OnboardingService>();
     builder.Services.AddSingleton<IIpcService, IpcService>();
+    builder.Services.AddSingleton<IProcessExitWatcher, ProcessExitWatcher>();
+    builder.Services.AddHostedService<TtsShutdownHostedService>();
+    builder.Services.AddHostedService<HostWatchdogHostedService>();
 
     // ── App ───────────────────────────────────────────
     WebApplication app = builder.Build();

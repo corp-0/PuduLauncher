@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using PuduLauncher.Interop;
 using PuduLauncher.Services.Interfaces;
 
 namespace PuduLauncher.Services;
@@ -14,6 +15,7 @@ public class TtsServerService(
 
     private Process? _serverProcess;
     private string? _lastInstallPath;
+    private IntPtr _jobHandle = IntPtr.Zero;
 
     public bool IsRunning => _serverProcess is { HasExited: false };
 
@@ -64,6 +66,8 @@ public class TtsServerService(
         _serverProcess = process;
         logger.LogInformation("TTS server process started (PID {Pid})", process.Id);
 
+        AssignToKillOnCloseJob(process);
+
         return Task.CompletedTask;
     }
 
@@ -108,6 +112,8 @@ public class TtsServerService(
             logger.LogInformation("Stopped {Count} lingering HonkTTS process(es) from {Path}",
                 orphanedProcessCount, effectiveInstallPath);
         }
+
+        CloseJobHandle();
     }
 
     public async Task WaitForHealthAsync(CancellationToken ct = default)
@@ -149,6 +155,7 @@ public class TtsServerService(
         }
 
         _serverProcess?.Dispose();
+        CloseJobHandle();
     }
 
     private static ProcessStartInfo CreateProcessStartInfo(string scriptPath)
@@ -175,6 +182,48 @@ public class TtsServerService(
             RedirectStandardOutput = true,
             RedirectStandardError = true,
         };
+    }
+
+    // Windows defense-in-depth: bind the TTS process tree to a Job Object that
+    // kills its members when the sidecar (which holds the only job handle) dies,
+    // even on a hard kill where StopAsync/Dispose never run.
+    private void AssignToKillOnCloseJob(Process process)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        try
+        {
+            _jobHandle = JobObjects.CreateKillOnCloseJob();
+            if (_jobHandle == IntPtr.Zero)
+            {
+                logger.LogWarning("Failed to create kill-on-close Job Object for TTS server");
+                return;
+            }
+
+            if (!JobObjects.TryAssignProcess(_jobHandle, process.Handle))
+            {
+                logger.LogWarning("Failed to assign TTS server to Job Object");
+                JobObjects.Close(_jobHandle);
+                _jobHandle = IntPtr.Zero;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Error setting up Job Object for TTS server");
+            _jobHandle = IntPtr.Zero;
+        }
+    }
+
+    private void CloseJobHandle()
+    {
+        if (OperatingSystem.IsWindows() && _jobHandle != IntPtr.Zero)
+        {
+            JobObjects.Close(_jobHandle);
+            _jobHandle = IntPtr.Zero;
+        }
     }
 
     private int KillProcessesUnderPath(string installPath)

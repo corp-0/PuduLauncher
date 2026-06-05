@@ -76,6 +76,35 @@ public static class AppConfiguration
 
         app.Logger.LogInformation("PuduLauncher Sidecar started on port {Port}", port);
 
+        // Listen for a graceful shutdown signal from the Rust host over stdin.
+        // A "SHUTDOWN" line or stdin EOF triggers a graceful host shutdown, which
+        // lets TtsShutdownHostedService stop the TTS server before we exit.
+        _ = Task.Run(() => ListenForShutdownAsync(app));
+
         await app.WaitForShutdownAsync();
+    }
+
+    private static async Task ListenForShutdownAsync(WebApplication app)
+    {
+        try
+        {
+            while (true)
+            {
+                string? line = await Console.In.ReadLineAsync();
+
+                // Null means stdin reached EOF (the host went away). Either an
+                // explicit SHUTDOWN or EOF should trigger a graceful shutdown.
+                if (line is null || string.Equals(line.Trim(), "SHUTDOWN", StringComparison.OrdinalIgnoreCase))
+                {
+                    app.Logger.LogInformation("Received shutdown signal via stdin");
+                    app.Lifetime.StopApplication();
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            app.Logger.LogWarning(ex, "stdin shutdown listener stopped unexpectedly");
+        }
     }
 }
