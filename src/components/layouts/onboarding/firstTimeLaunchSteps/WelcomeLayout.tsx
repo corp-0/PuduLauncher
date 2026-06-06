@@ -43,11 +43,11 @@ export default function WelcomeLayout(props: OnboardingStepComponentProps): JSX.
         >
             <Typography level="h2">Welcome to PuduLauncher!</Typography>
             <Typography level="body-md">
-                Thanks for being here. Our goal is simple: deliver a smoother, more polished Unitystation
-                launcher experience, and grow into the official launcher over time.
+                Thanks for being here! Pudu is the official Unitystation launcher, built to get you into
+                the game faster and with less hassle. Let&apos;s get you set up.
             </Typography>
             <Typography level="body-md">
-                If you have any suggestion, don&apos;t hesitate to let Gilles know on{" "}
+                Need help or have a question? Reach out on{" "}
                 <Link href={UNITYSTATION_DISCORD_URL} onClick={(event) => void openDiscord(event)}>
                     Unitystation&apos;s Discord
                 </Link>.
