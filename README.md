@@ -3,7 +3,7 @@
 </h1>
 
 <p align="center">
-  A lightweight, open-source alternative Unitystation launcher that aspires to be the official one.
+  The official lightweight, open-source Unitystation launcher.
 </p>
 
 <p align="center">
@@ -20,7 +20,7 @@
 
 ## About
 
-Pudu Launcher is a desktop application for downloading and managing your Unitystation installations. Heavily inspired by [Stationhub](https://github.com/unitystation/stationhub), it aims to deliver a better user experience and reliability than its predecessor.
+Pudu Launcher is the official desktop application for downloading and managing your Unitystation installations. Succeeding [Stationhub](https://github.com/unitystation/stationhub), it delivers a better user experience and reliability than its predecessor.
 
 Available for **Windows**, **Linux** (deb, rpm), and **macOS**.
 

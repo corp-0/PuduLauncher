@@ -21,7 +21,7 @@ export default function SideBar() {
             <Stack direction="column" alignItems="center" spacing={2}>
                 <Typography level="title-lg">Pudu Launcher</Typography>
                 <Typography level="body-sm" sx={{ color: "text.secondary", mt: 0.5 }}>
-                    Alternative Unitystation Launcher
+                    Unitystation Official Launcher
                 </Typography>
                 <Divider />
             </Stack>
