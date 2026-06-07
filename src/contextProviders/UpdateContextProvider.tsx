@@ -11,7 +11,7 @@ import { useStableRef } from "../hooks/useStableRef";
 
 type UpdateStatus = "checking" | "no-update" | "update-available" | "downloading" | "installing" | "error";
 
-const RELEASES_URL = "https://github.com/corp-0/PuduLauncher/releases/latest";
+const RELEASES_URL = "https://github.com/unitystation/PuduLauncher/releases/latest";
 
 interface UpdateContextValue {
     status: UpdateStatus;

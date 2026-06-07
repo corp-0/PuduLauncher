@@ -11,7 +11,7 @@
 Clone the repo and install npm dependencies:
 
 ```bash
-git clone https://github.com/corp-0/PuduLauncher.git
+git clone https://github.com/unitystation/PuduLauncher.git
 cd PuduLauncher
 npm install
 ```

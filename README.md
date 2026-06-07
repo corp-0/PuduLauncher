@@ -7,8 +7,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/corp-0/PuduLauncher/releases/latest">
-    <img src="https://img.shields.io/github/v/release/corp-0/PuduLauncher?style=for-the-badge&label=Download%20Latest&logo=github&color=28a745" alt="Download Latest Release" />
+  <a href="https://github.com/unitystation/PuduLauncher/releases/latest">
+    <img src="https://img.shields.io/github/v/release/unitystation/PuduLauncher?style=for-the-badge&label=Download%20Latest&logo=github&color=28a745" alt="Download Latest Release" />
   </a>
   &nbsp;
   <a href="https://aur.archlinux.org/packages/pudu-launcher-git">
@@ -37,7 +37,7 @@ Available for **Windows**, **Linux** (deb, rpm), and **macOS**.
 
 ## Getting Started
 
-Head to the [latest release](https://github.com/corp-0/PuduLauncher/releases/latest) page, download the installer for your platform, and run it. The launcher includes built-in auto-updates on Windows, so you'll always stay on the latest version. Linux users can install from the [AUR](https://aur.archlinux.org/packages/pudu-launcher-git) or download the `.deb`/`.rpm` package from the releases page.
+Head to the [latest release](https://github.com/unitystation/PuduLauncher/releases/latest) page, download the installer for your platform, and run it. The launcher includes built-in auto-updates on Windows, so you'll always stay on the latest version. Linux users can install from the [AUR](https://aur.archlinux.org/packages/pudu-launcher-git) or download the `.deb`/`.rpm` package from the releases page.
 
 ## Contributing
 

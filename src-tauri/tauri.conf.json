@@ -25,7 +25,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDREMjI1NkJEOEQ2OEFFMjcKUldRbnJtaU52VllpVGR2YXVWLzZlSW9rUVU3ZWtwWUgwTEV1dVI5M04xdVNvVWNmUXRVS1hOSVMK",
       "endpoints": [
-        "https://github.com/corp-0/PuduLauncher/releases/latest/download/latest.json"
+        "https://github.com/unitystation/PuduLauncher/releases/latest/download/latest.json"
       ]
     }
   },
