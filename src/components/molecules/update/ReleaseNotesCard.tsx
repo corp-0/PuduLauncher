@@ -1,9 +1,27 @@
 import { Box, Typography } from "@mui/joy";
 import Markdown from "react-markdown";
+import type { Components } from "react-markdown";
+import { openExternalUrl } from "../../../utils/navigation/openExternalUrl";
 
 interface ReleaseNotesCardProps {
     content: string;
 }
+
+const markdownComponents: Components = {
+    a: ({ href, children, ...rest }) => (
+        <a
+            {...rest}
+            href={href}
+            onClick={(event) => {
+                if (href) {
+                    void openExternalUrl(event, href);
+                }
+            }}
+        >
+            {children}
+        </a>
+    ),
+};
 
 export default function ReleaseNotesCard(props: ReleaseNotesCardProps) {
     const { content } = props;
@@ -54,7 +72,7 @@ export default function ReleaseNotesCard(props: ReleaseNotesCardProps) {
                 "& a:hover": { textDecoration: "underline" },
                 "& strong": { color: "text.primary" },
             }}>
-                <Markdown>{content}</Markdown>
+                <Markdown components={markdownComponents}>{content}</Markdown>
             </Box>
         </Box>
     );
