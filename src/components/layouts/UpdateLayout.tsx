@@ -60,7 +60,7 @@ export default function UpdateLayout(props: UpdateLayoutProps) {
     return (
         <Box sx={{
             width: "100%",
-            height: "100%",
+            height: "100dvh",
             display: "flex",
             overflow: "hidden",
             bgcolor: "background.body",
