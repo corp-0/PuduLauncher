@@ -56,6 +56,7 @@ export default function TtsInstallerLayout(props: TtsInstallerLayoutProps) {
                         currentStep={currentStep}
                         stepLabels={stepLabels}
                         isComplete={isComplete}
+                        startNumber={0}
                     />
 
                     {(statusMessage || statusLabel) && (

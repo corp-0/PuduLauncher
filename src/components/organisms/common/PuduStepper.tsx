@@ -6,10 +6,14 @@ interface PuduStepperProps {
     currentStep: number;
     stepLabels?: string[];
     isComplete?: boolean;
+    // Number shown on the first indicator. Defaults to 1. Set to 0 to align the
+    // displayed numbers with externally numbered phases (for example installer
+    // log lines that count from a zero-based "prepare" step).
+    startNumber?: number;
 }
 
 export default function PuduStepper(props: PuduStepperProps) {
-    const { maxSteps, currentStep, stepLabels, isComplete = false } = props;
+    const { maxSteps, currentStep, stepLabels, isComplete = false, startNumber = 1 } = props;
     const stepCount = Math.max(1, Math.floor(maxSteps));
     const activeStep = Math.min(Math.max(Math.floor(currentStep), 1), stepCount);
 
@@ -32,7 +36,7 @@ export default function PuduStepper(props: PuduStepperProps) {
                                 variant={indicatorVariant}
                                 color={indicatorColor}
                             >
-                                {isCompleted ? <CheckRounded fontSize="inherit" /> : stepNumber}
+                                {isCompleted ? <CheckRounded fontSize="inherit" /> : stepNumber - 1 + startNumber}
                             </StepIndicator>
                         }
                     >
