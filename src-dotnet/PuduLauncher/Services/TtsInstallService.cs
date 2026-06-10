@@ -39,12 +39,24 @@ public class TtsInstallService(
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
+            // Redirect stdin so the installer (and the bundled Python it spawns for
+            // the python env step) gets a private handle instead of inheriting the
+            // sidecar's stdin, a pipe the Rust host owns for the ACK/SHUTDOWN signal.
+            // The bundled Python blocks while initializing its standard streams on
+            // that inherited pipe, hanging the install. See TtsServerService for the
+            // same fix on the server process.
+            RedirectStandardInput = true,
         };
 
         using var process = new Process();
         process.StartInfo = psi;
         process.EnableRaisingEvents = true;
         process.Start();
+
+        // The installer never reads stdin; close it so the child sees EOF rather
+        // than an open idle pipe. The redirect itself is what keeps it off the
+        // sidecar's inherited stdin (see ProcessStartInfo above).
+        process.StandardInput.Close();
 
         lock (_processLock)
         {

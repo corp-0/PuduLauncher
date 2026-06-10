@@ -85,10 +85,8 @@ export function TtsInstallerContextProvider(props: PropsWithChildren) {
     const { ttsState, status, statusMessage, installLogs, clearInstallLogs } = useTtsState();
 
     const [isInstallerOpen, setIsInstallerOpen] = useState(false);
-    const [maxReachedStep, setMaxReachedStep] = useState(1);
     const installSessionRef = useRef(false);
     const prevStatusRef = useRef<number | null>(null);
-    const prevLogLengthRef = useRef(0);
     const prevUpdateAvailableRef = useRef(false);
 
     const beginInstallSession = () => {
@@ -98,7 +96,6 @@ export function TtsInstallerContextProvider(props: PropsWithChildren) {
 
         installSessionRef.current = true;
         clearInstallLogs();
-        setMaxReachedStep(1);
     };
 
     // React to status changes
@@ -132,25 +129,18 @@ export function TtsInstallerContextProvider(props: PropsWithChildren) {
             showInfo({ message: "TTS server stopped" });
         }
 
-        setMaxReachedStep((prev) => Math.max(prev, stepFromStatus(status)));
         prevStatusRef.current = status;
     }, [status]);
 
-    // React to new install log lines
+    // React to new install log lines. This effect only opens the installer modal
+    // when logs start streaming. The active step is derived from installLogs
+    // directly (see currentStep below) rather than tracked incrementally, so it
+    // can never desync from the log contents.
     useEffect(() => {
         if (installLogs.length > 0 && !installSessionRef.current) {
             beginInstallSession();
             setIsInstallerOpen(true);
         }
-
-        for (let i = prevLogLengthRef.current; i < installLogs.length; i++) {
-            const parsed = inferStepFromLogLine(installLogs[i]);
-            if (parsed !== null) {
-                setMaxReachedStep((prev) => Math.max(prev, parsed));
-            }
-        }
-
-        prevLogLengthRef.current = installLogs.length;
     }, [installLogs]);
 
     useEffect(() => {
@@ -184,7 +174,20 @@ export function TtsInstallerContextProvider(props: PropsWithChildren) {
     const statusLabel = status !== null
         ? (TTS_STATUS_LABELS[status] ?? `Status ${status}`)
         : "Unknown";
-    const currentStep = maxReachedStep;
+    // Derive the active step from the log contents on every render instead of
+    // tracking it incrementally. An incremental index cursor desynced from
+    // installLogs whenever the shared log array was cleared for a new session,
+    // skipping step markers and freezing the stepper (for example showing
+    // "Python" while packages were already installing). Re-scanning is cheap
+    // (logs are capped at 400 lines) and cannot drift from what the log shows.
+    const stepFromLogs = installLogs.reduce((maxStep, line) => {
+        const parsed = inferStepFromLogLine(line);
+        return parsed === null ? maxStep : Math.max(maxStep, parsed);
+    }, 1);
+    const currentStep = Math.min(
+        Math.max(stepFromLogs, stepFromStatus(status)),
+        INSTALL_STEP_LABELS.length,
+    );
     const isInstallComplete = status === TTS_STATUS.Installed;
     const stepStatusMessage = isInstallComplete
         ? INSTALL_SUCCESS_MESSAGE
